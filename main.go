@@ -13,21 +13,15 @@ func main() {
 		Login:    "Admin",
 		Password: "1234",
 	}
-	err := database.AddUser(&user)
-	if err != nil {
-		log.Panicln(err)
-	} else {
-		log.Println("User added successfully")
-	}
+	database.AddUser(&user)
 
 	users, err := database.GetUsers()
 	if err != nil {
-    	log.Println(err)
-    	return
-	}	
+		log.Println(err)
+		return
+	}
 	for _, user := range *users {
 		log.Println(user)
 	}
-	
 
 }
