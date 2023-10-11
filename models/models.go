@@ -7,11 +7,10 @@ import (
 )
 
 type User struct {
-	ID                 primitive.ObjectID `json:"_id" bson:"_id"`
-	Login              *string            `json:"login" validate:"requered, min=4, max=15"`
-	Password           *string            `json:"password" validate:"requered, min=6"`
-	User_Subscriprtion Subscription_User  `json:"user_subscriprtion" bson:"user_subscriprtion"`
-	Order_Status       []Order            `json:"order_status" bson:"order_status"`
+	Login              string            `json:"login" validate:"requered, min=4, max=15"`
+	Password           string            `json:"password" validate:"requered, min=6"`
+	// User_Subscriprtion Subscription_User  `json:"user_subscriprtion" bson:"user_subscriprtion"`
+	// Order_Status       []Order            `json:"order_status" bson:"order_status"`
 }
 
 type Subscription struct {

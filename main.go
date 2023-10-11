@@ -3,47 +3,31 @@ package main
 import (
 	"log"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/MikeFors0/golang-bot/database"
+	"github.com/MikeFors0/golang-bot/models"
 )
 
 func main() {
-	bot, err := tgbotapi.NewBotAPI("6142224756:AAFYO2_mgxeumSMEd6rJjpuhwSufJC7ti7E")
+
+	user := models.User{
+		Login:    "Admin",
+		Password: "1234",
+	}
+	err := database.AddUser(&user)
 	if err != nil {
-		log.Panic(err)
+		log.Panicln(err)
+	} else {
+		log.Println("User added successfully")
 	}
 
-	bot.Debug = true
-
-	log.Printf("Authorized on account %s", bot.Self.UserName)
-
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates, err := bot.GetUpdatesChan(u)
-
-	for update := range updates {
-		if update.Message == nil { // ignore non-Message updates
-			continue
-		}
-
-		if update.Message.IsCommand() {
-			switch update.Message.Command() {
-			case "start":
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Привет! Я телеграм-бот.")
-				msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonURL("Google", "https://www.google.com"),
-						tgbotapi.NewInlineKeyboardButtonURL("Гандон 1", "https://t.me/webtimr"),
-					),
-					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("Кнопка 2", "button2"),
-					),
-				)
-				_, err := bot.Send(msg)
-				if err != nil {
-					log.Panic(err)
-				}
-			}
-		}
+	users, err := database.GetUsers()
+	if err != nil {
+    	log.Println(err)
+    	return
+	}	
+	for _, user := range *users {
+		log.Println(user)
 	}
+	
+
 }
