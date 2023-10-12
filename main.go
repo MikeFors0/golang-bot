@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/MikeFors0/golang-bot/database"
 )
 
@@ -10,7 +12,7 @@ func main() {
 	// 	Password: "1234",
 	// }
 	// database.AddUser(&user)
-	database.AuthenticateUser("Admint", "1234")
+	database.AuthenticateUser("Admin", "1234")
 
 	// users, err := database.GetUsers()
 	// if err != nil {
@@ -20,5 +22,11 @@ func main() {
 	// for _, user := range *users {
 	// 	log.Println(user)
 	// }
+	err := database.SendMessage()
+	if err != nil {
+		fmt.Println("error checking students")
+		// handle error
+	}
+	fmt.Println("Its Okey")
 
 }

@@ -13,6 +13,8 @@ type User struct {
 	User_ID            string             `json:"user_id" bson:"user_id"`
 	User_Subscriprtion Subscription_User  `json:"user_subscriprtion" bson:"user_subscriprtion"`
 	Order_Status       []Order            `json:"order_status" bson:"order_status"`
+	Passage_student    []Passage          `json:"passage_student" bson:"passage_student"`
+	Logined            bool               `json:"logined" bson:"logined"`
 }
 
 type Subscription struct {
@@ -37,4 +39,10 @@ type Order struct {
 
 type Payment struct {
 	digital bool
+}
+
+type Passage struct {
+	Passage_ID  primitive.ObjectID `bson:"_id"`
+	FIO_student string             `json:"fio_student" bson:"fio_student"`
+	Passage_At  time.Time          `json:"passage_at" bson:"passage_at"`
 }

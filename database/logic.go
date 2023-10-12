@@ -18,6 +18,11 @@ var UserCollection *mongo.Collection = UserData(Client, "users")
 
 var validate = validator.New()
 
+func gg() {
+	fmt.Println("ff")
+}
+
+
 func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
@@ -26,6 +31,7 @@ func HashPassword(password string) string {
 	return string(bytes)
 }
 
+// Создание пользователя в бд
 func AddUser(user *models.User) error {
 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -63,6 +69,7 @@ func AddUser(user *models.User) error {
 
 }
 
+// Авторизация через бд
 func AuthenticateUser(login string, password string) (*models.User, error) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -76,17 +83,23 @@ func AuthenticateUser(login string, password string) (*models.User, error) {
 		}
 		fmt.Println("error finding user")
 		return nil, fmt.Errorf("error finding user: %v", err)
-	} 
-	
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		fmt.Println("invalid password")
 		return nil, fmt.Errorf("invalid password")
-		}
-	fmt.Println("You are logined in system:", user.Login)
+	}
+	filter := bson.M{"login": login}
+	update := bson.M{"$set": bson.M{"logined": true}}
+	_, err = UserCollection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("You are logined in system:", user.Login, user.Logined)
 	return user, nil
 }
 
-
+// просмотр всех пользователй в бд
 func GetUsers() (*[]models.User, error) {
 	cur, err := UserCollection.Find(context.Background(), bson.M{})
 	if err != nil {
@@ -110,4 +123,17 @@ func GetUsers() (*[]models.User, error) {
 		return nil, err
 	}
 	return &users, nil
+}
+
+func SendMessage( Logined bool, message string) error {
+    if !Logined {
+        return fmt.Errorf("User not authorized")
+    }
+
+    _, err := UserCollection.InsertOne(nil, bson.D{{"logined", Logined}, {"message", message}})
+    if err != nil {
+        return err
+    }
+	fmt.Println("its okey", Logined)
+    return nil
 }
