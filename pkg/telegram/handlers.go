@@ -4,33 +4,56 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-//обработать сообщение
-func (b *Bot) handleMessage(message *tgbotapi.Message) error {
-	msg := tgbotapi.NewMessage(int64(message.From.ID), "Я не знаю такой команды :(")
-	_, err := b.bot.Send(msg)
-	return err
-	
-}
 
-func (b *Bot) handleCommand(chat_id int, message *tgbotapi.Message) error {
-	user, err := GetUser(chat_id)
+
+//обработчик сообщений
+func (b *Bot) handleMessage(message *tgbotapi.Message) error {
+
+	command_user, err := Get_User_Command(message.From.ID)
 	if err != nil {
 		return err
 	}
 
-
-	switch user.Runs_Command {
+	switch command_user.Command {
 	case "start":
-		return b.handleStartCommand(message)
+		return b.Reg(message)
+	case "reset_login":
+		return b.Reg(message)
 
-	case "auth":
-		return b.handleAuthorizationCommand(message)
+	
 
 	default:
-		msg := tgbotapi.NewMessage(int64(message.From.ID), "К сожалению, я не знаю такой команды =(")
-		_, err := b.bot.Send(msg)
-		return err
+		_err := b.setMessage(message, "К сожалению, я не знаю такой команды =(")
+		if _err != nil {
+			return _err
+		}
 	}
+
+	return nil
+}
+
+
+
+//обработчик команд
+func (b *Bot) handleCommand(chat_id int, message *tgbotapi.Message) error {
+
+	switch message.Command() {
+	case "start":
+		return b.handleStart(message)
+
+	case "auth":
+		return b.Auth(message)
+
+
+
+	default:
+		_err := b.setMessage(message, "К сожалению, я не знаю такой команды =(")
+		if _err != nil {
+			return _err
+		}
+	}
+
+	return nil
 }
 
 
@@ -45,24 +68,25 @@ func (b *Bot) handleCommand(chat_id int, message *tgbotapi.Message) error {
 
 
 
+func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
-
-func (b *Bot) handleStartCommand(message *tgbotapi.Message) error {
-	
-	err := SetUser(int(message.Chat.ID))
+	err := Set_User_Command(int(message.Chat.ID))
 	if err != nil {
 		return err
 	}
 
-	msg := tgbotapi.NewMessage(int64(message.From.ID), "Бот запущен :)")
-		_, err = b.bot.Send(msg)
-		return err
+	text := "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234"
+
+	_err := b.setMessage(message, text)
+	if _err != nil {
+		return _err
+	}
+
+	return nil
 }
 
 
-func (b *Bot) handleAuthorizationCommand(message *tgbotapi.Message) error {
-	Reset_Runs_Command(int(message.Chat.ID), "auth")
-	msg := tgbotapi.NewMessage(int64(message.From.ID), "Введите ваши логин и пароль под которвыми вы зарегестрированы в АСУРСО СГК")
-		_, err := b.bot.Send(msg)
-		return err
-}
+
+
+
+
