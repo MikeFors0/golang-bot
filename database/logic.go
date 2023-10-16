@@ -114,6 +114,9 @@ func GetUsers() (*[]models.User, error) {
 // Доступ к пользователя по ID_telegram
 func GetUser(tg_id string) (user models.User, err error) {
 	ctx := context.Background()
+	var id_telegram models.Id_telegram
+	id_telegram.Id_telegram = tg_id
+	user.Tg_id = id_telegram
 	filter := bson.M{"tg_id": tg_id}
 	err = UserCollection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
