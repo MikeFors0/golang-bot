@@ -149,6 +149,14 @@ func GetUser(id primitive.ObjectID) (user models.User, err error) {
 }
 
 
+func AddUserTelegram(clinet *mongo.Client, tg_id int) (user models.Id_telegram, err error) {
+	ctx := context.Background()
+	err = UserCollection.InsertOne(ctx, tg_id)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
 func Login(client *mongo.Client, userid primitive.ObjectID, Logined bool) error {
 	ctx := context.Background()
 	filter := bson.M{"_id":userid}
