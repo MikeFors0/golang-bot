@@ -15,6 +15,7 @@ type User struct {
 	Order_Status       []Order            `json:"order_status" bson:"order_status"`
 	Passage_student    []Passage          `json:"passage_student" bson:"passage_student"`
 	Logined            bool               `json:"logined" bson:"logined"`
+	Id_tg              Id_telegram        `json:"id_tg" bson:"id_tg"`
 }
 
 type Subscription struct {
@@ -45,4 +46,8 @@ type Passage struct {
 	Passage_ID  primitive.ObjectID `bson:"_id"`
 	FIO_student string             `json:"fio_student" bson:"fio_student"`
 	Passage_At  time.Time          `json:"passage_at" bson:"passage_at"`
+}
+
+type Id_telegram struct {
+	Id_telegram int `json:"id_telegram" bson:"id_telegram"`
 }
