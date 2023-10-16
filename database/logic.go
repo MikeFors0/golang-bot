@@ -112,22 +112,29 @@ func GetUsers() (*[]models.User, error) {
 
 
 // Доступ к пользователя по ID_telegram
-func GetUser(tg_id string) (user models.User, err error) {
-	ctx := context.Background()
+func GetUser(tg_id uint) (user models.User, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+  
 	var id_telegram models.Id_telegram
 	id_telegram.Id_telegram = tg_id
-	user.Tg_id = id_telegram
-	filter := bson.M{"tg_id": tg_id}
-	err = UserCollection.FindOne(ctx, filter).Decode(&user)
+  
+	err = UserCollection.FindOne(ctx, bson.M{"tg_id.id_telegram": tg_id}).Decode(&user)
 	if err != nil {
-		log.Panic(err)
+	  if err == mongo.ErrNoDocuments {
+		fmt.Println("user not found")
+		return user, fmt.Errorf("user not found")
+	  }
+	  fmt.Println("error finding user")
+	  return user, fmt.Errorf("error finding user: %v", err)
 	}
-	return user, err
-}
+  
+	return user, nil
+  }
 
 
 // Регистрация при /start, отправление ID_telegram в массив
-func AddUserTelegram(client *mongo.Client, tg_id string) (models.Id_telegram, error) {
+func AddUserTelegram(client *mongo.Client, tg_id uint) (models.Id_telegram, error) {
 	ctx := context.Background()
 	var id_telegram models.Id_telegram
 	id_telegram.Id_telegram = tg_id
@@ -141,7 +148,7 @@ func AddUserTelegram(client *mongo.Client, tg_id string) (models.Id_telegram, er
 
 
 // авторизация через бд - лк САМГК (с добавлением ID_telegram)
-func AuthenticateUser(client *mongo.Client, tg_id string, login string, password string) (*models.User, error) {
+func AuthenticateUser(client *mongo.Client, tg_id uint, login string, password string) (*models.User, error) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
