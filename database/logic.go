@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"image/color/palette"
 	"log"
 	"time"
 
@@ -21,7 +22,6 @@ var validate = validator.New()
 func gg() {
 	fmt.Println("ff")
 }
-
 
 func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -69,71 +69,92 @@ func AddUser(user *models.User) error {
 
 }
 
-// Авторизация через бд
-func AuthenticateUser(login string, password string) (*models.User, error) {
-	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+// // Авторизация через бд
+// func AuthenticateUser(login string, password string) (*models.User, error) {
+// 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+// 	defer cancel()
 
-	user := &models.User{}
-	err := UserCollection.FindOne(ctx, bson.M{"login": login}).Decode(user)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			fmt.Println("user not found")
-			return nil, fmt.Errorf("user not found")
-		}
-		fmt.Println("error finding user")
-		return nil, fmt.Errorf("error finding user: %v", err)
-	}
+// 	user := &models.User{}
+// 	err := UserCollection.FindOne(ctx, bson.M{"login": login}).Decode(user)
+// 	if err != nil {
+// 		if err == mongo.ErrNoDocuments {
+// 			fmt.Println("user not found")
+// 			return nil, fmt.Errorf("user not found")
+// 		}
+// 		fmt.Println("error finding user")
+// 		return nil, fmt.Errorf("error finding user: %v", err)
+// 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		fmt.Println("invalid password")
-		return nil, fmt.Errorf("invalid password")
-	}
-	filter := bson.M{"login": login}
-	update := bson.M{"$set": bson.M{"logined": true}}
-	_, err = UserCollection.UpdateOne(ctx, filter, update)
+// 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+// 		fmt.Println("invalid password")
+// 		return nil, fmt.Errorf("invalid password")
+// 	}
+// 	filter := bson.M{"login": login}
+// 	update := bson.M{"$set": bson.M{"logined": true}}
+// 	_, err = UserCollection.UpdateOne(ctx, filter, update)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	fmt.Println("You are logined in system:", user.Login, user.Logined)
+// 	return user, nil
+// }
+
+// // просмотр всех пользователй в бд
+// func GetUsers() (*[]models.User, error) {
+// 	cur, err := UserCollection.Find(context.Background(), bson.M{})
+// 	if err != nil {
+// 		log.Println(err)
+// 		return nil, err
+// 	}
+// 	defer cur.Close(context.Background())
+
+// 	var users []models.User
+// 	for cur.Next(context.Background()) {
+// 		var user models.User
+// 		err := cur.Decode(&user)
+// 		if err != nil {
+// 			log.Println(err)
+// 			return nil, err
+// 		}
+// 		users = append(users, user)
+// 	}
+// 	if err := cur.Err(); err != nil {
+// 		log.Println(err)
+// 		return nil, err
+// 	}
+// 	return &users, nil
+// }
+
+// func SendMessage( Logined bool, message string) error {
+//     if !Logined {
+//         return fmt.Errorf("User not authorized")
+//     }
+
+//     _, err := UserCollection.InsertOne(nil, bson.D{{"logined", Logined}, {"message", message}})
+//     if err != nil {
+//         return err
+//     }
+// 	fmt.Println("its okey", Logined)
+//     return nil
+// }
+
+func GetUser(id primitive.ObjectID) (user models.User, err error) {
+	ctx := context.Background()
+	filter := bson.M{"_id":id}
+	err = UserCollection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
-	fmt.Println("You are logined in system:", user.Login, user.Logined)
-	return user, nil
+	return user, err
 }
 
-// просмотр всех пользователй в бд
-func GetUsers() (*[]models.User, error) {
-	cur, err := UserCollection.Find(context.Background(), bson.M{})
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	defer cur.Close(context.Background())
 
-	var users []models.User
-	for cur.Next(context.Background()) {
-		var user models.User
-		err := cur.Decode(&user)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		users = append(users, user)
-	}
-	if err := cur.Err(); err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	return &users, nil
+func Login(client *mongo.Client, userid primitive.ObjectID, Logined bool) error {
+	ctx := context.Background()
+	filter := bson.M{"_id":userid}
+	_, err := UserCollection.UpdateOne(ctx, filter, bson.M{"$eq":Logined})
+	return err
 }
 
-func SendMessage( Logined bool, message string) error {
-    if !Logined {
-        return fmt.Errorf("User not authorized")
-    }
 
-    _, err := UserCollection.InsertOne(nil, bson.D{{"logined", Logined}, {"message", message}})
-    if err != nil {
-        return err
-    }
-	fmt.Println("its okey", Logined)
-    return nil
-}
+func 
