@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/MikeFors0/golang-bot/database"
+	// "github.com/MikeFors0/golang-bot/models"
 )
 
 func main() {
@@ -12,21 +13,29 @@ func main() {
 	// 	Password: "1234",
 	// }
 	// database.AddUser(&user)
-	database.AuthenticateUser("Admin", "1234")
-
-	// users, err := database.GetUsers()
+	// _, err := database.AddUserTelegram(database.Client, "5454")
 	// if err != nil {
-	// 	log.Println(err)
-	// 	return
+	// 	log.Panic(err)
 	// }
-	// for _, user := range *users {
+
+	_, err := database.AuthenticateUser(database.Client, "5454", "Admin", "1234")
+	if err != nil {
+		log.Panic(err)
+	}
+	users, err := database.GetUser("Admin")
+	if err != nil {
+		log.Panic(err)
+		return
+	}
+	log.Println(users)
+	// for _, user := range users {
 	// 	log.Println(user)
 	// }
-	err := database.SendMessage()
-	if err != nil {
-		fmt.Println("error checking students")
-		// handle error
-	}
-	fmt.Println("Its Okey")
+	// err := database.SendMessage()
+	// if err != nil {
+	// 	fmt.Println("error checking students")
+	// 	// handle error
+	// }
+	// fmt.Println("Its Okey")
 
 }

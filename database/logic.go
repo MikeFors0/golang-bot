@@ -3,7 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
-	"image/color/palette"
+
+	// "go/parser"
 	"log"
 	"time"
 
@@ -69,61 +70,32 @@ func AddUser(user *models.User) error {
 
 }
 
-// // Авторизация через бд
-// func AuthenticateUser(login string, password string) (*models.User, error) {
-// 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	user := &models.User{}
-// 	err := UserCollection.FindOne(ctx, bson.M{"login": login}).Decode(user)
-// 	if err != nil {
-// 		if err == mongo.ErrNoDocuments {
-// 			fmt.Println("user not found")
-// 			return nil, fmt.Errorf("user not found")
-// 		}
-// 		fmt.Println("error finding user")
-// 		return nil, fmt.Errorf("error finding user: %v", err)
-// 	}
-
-// 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-// 		fmt.Println("invalid password")
-// 		return nil, fmt.Errorf("invalid password")
-// 	}
-// 	filter := bson.M{"login": login}
-// 	update := bson.M{"$set": bson.M{"logined": true}}
-// 	_, err = UserCollection.UpdateOne(ctx, filter, update)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	fmt.Println("You are logined in system:", user.Login, user.Logined)
-// 	return user, nil
-// }
 
 // // просмотр всех пользователй в бд
-// func GetUsers() (*[]models.User, error) {
-// 	cur, err := UserCollection.Find(context.Background(), bson.M{})
-// 	if err != nil {
-// 		log.Println(err)
-// 		return nil, err
-// 	}
-// 	defer cur.Close(context.Background())
+func GetUsers() (*[]models.User, error) {
+	cur, err := UserCollection.Find(context.Background(), bson.M{})
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer cur.Close(context.Background())
 
-// 	var users []models.User
-// 	for cur.Next(context.Background()) {
-// 		var user models.User
-// 		err := cur.Decode(&user)
-// 		if err != nil {
-// 			log.Println(err)
-// 			return nil, err
-// 		}
-// 		users = append(users, user)
-// 	}
-// 	if err := cur.Err(); err != nil {
-// 		log.Println(err)
-// 		return nil, err
-// 	}
-// 	return &users, nil
-// }
+	var users []models.User
+	for cur.Next(context.Background()) {
+		var user models.User
+		err := cur.Decode(&user)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err := cur.Err(); err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return &users, nil
+}
 
 // func SendMessage( Logined bool, message string) error {
 //     if !Logined {
@@ -138,9 +110,11 @@ func AddUser(user *models.User) error {
 //     return nil
 // }
 
-func GetUser(id primitive.ObjectID) (user models.User, err error) {
+
+// Доступ к пользователя по ID_telegram
+func GetUser(tg_id string) (user models.User, err error) {
 	ctx := context.Background()
-	filter := bson.M{"_id":id}
+	filter := bson.M{"tg_id": tg_id}
 	err = UserCollection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		log.Panic(err)
@@ -149,20 +123,52 @@ func GetUser(id primitive.ObjectID) (user models.User, err error) {
 }
 
 
-func AddUserTelegram(clinet *mongo.Client, tg_id int) (user models.Id_telegram, err error) {
+// Регистрация при /start, отправление ID_telegram в массив
+func AddUserTelegram(client *mongo.Client, tg_id string) (models.Id_telegram, error) {
 	ctx := context.Background()
-	err = UserCollection.InsertOne(ctx, tg_id)
+	var id_telegram models.Id_telegram
+	id_telegram.Id_telegram = tg_id
+	_, err := UserCollection.InsertOne(ctx, id_telegram)
 	if err != nil {
-		log.Panic(err)
+		log.Panic("error ", err)
 	}
-}
-
-func Login(client *mongo.Client, userid primitive.ObjectID, Logined bool) error {
-	ctx := context.Background()
-	filter := bson.M{"_id":userid}
-	_, err := UserCollection.UpdateOne(ctx, filter, bson.M{"$eq":Logined})
-	return err
+	fmt.Println(id_telegram)
+	return id_telegram, err
 }
 
 
-func 
+// авторизация через бд - лк САМГК (с добавлением ID_telegram)
+func AuthenticateUser(client *mongo.Client, tg_id string, login string, password string) (*models.User, error) {
+	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	user := &models.User{}
+
+	err := UserCollection.FindOne(ctx, bson.M{"login": login}).Decode(&user)
+	if err != nil {
+		fmt.Println("ere error finding user")
+		return nil, fmt.Errorf("error finding user: %v", err)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		fmt.Println("invalid password")
+		return nil, fmt.Errorf("invalid password")
+	}
+
+	user.Login = login
+	var id_telegram models.Id_telegram
+	id_telegram.Id_telegram = tg_id
+	user.Tg_id = id_telegram
+	user.Logined = true
+
+	filter := bson.M{"login": login}
+
+	var _, errUpdateUserCollection = UserCollection.UpdateOne(ctx, filter, bson.M{"$set": user})
+	if errUpdateUserCollection != nil {
+		log.Fatalf("fatal update with mongoDB: ", errUpdateUserCollection)
+	}
+	fmt.Println("You are logined in system:", user.Login, user.Logined, user.Tg_id)
+
+	return user, nil
+}
+

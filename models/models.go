@@ -15,7 +15,7 @@ type User struct {
 	Order_Status       []Order            `json:"order_status" bson:"order_status"`
 	Passage_student    []Passage          `json:"passage_student" bson:"passage_student"`
 	Logined            bool               `json:"logined" bson:"logined"`
-	Id_tg              Id_telegram        `json:"id_tg" bson:"id_tg"`
+	Tg_id              Id_telegram        `json:"tg_id" bson:"tg_id"`
 }
 
 type Subscription struct {
@@ -49,5 +49,5 @@ type Passage struct {
 }
 
 type Id_telegram struct {
-	Id_telegram int `json:"id_telegram" bson:"id_telegram"`
+	Id_telegram string `json:"id_telegram" bson:"id_telegram"`
 }
