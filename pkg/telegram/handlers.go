@@ -4,10 +4,11 @@ import (
 	"log"
 	"strings"
 
+	"github.com/MikeFors0/golang-bot/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-//обработчик сообщений
+// обработчик сообщений
 func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 
 	command_user, err := Get_User_Command(message.From.ID)
@@ -17,12 +18,10 @@ func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 
 	switch command_user.Command {
 	case "start":
-		return b.Reg(message)
+		go b.Reg(message)
 
 	case "reset_login":
-		return b.Reg(message)
-
-	
+		go b.Reg(message)
 
 	default:
 		_err := b.setMessage(message, "К сожалению, я не знаю такой команды =(")
@@ -34,19 +33,15 @@ func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 	return nil
 }
 
-
-
-//обработчик команд
+// обработчик команд
 func (b *Bot) handleCommand(chat_id int, message *tgbotapi.Message) error {
 
 	switch message.Command() {
 	case "start":
-		return b.handleStart(message)
+		go b.handleStart(message)
 
 	case "auth":
-		return b.Auth(message)
-
-
+		go b.Auth(message)
 
 	default:
 		_err := b.setMessage(message, "К сожалению, я не знаю такой команды =(")
@@ -57,18 +52,6 @@ func (b *Bot) handleCommand(chat_id int, message *tgbotapi.Message) error {
 
 	return nil
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
@@ -77,6 +60,15 @@ func (b *Bot) handleStart(message *tgbotapi.Message) error {
 		return err
 	}
 
+
+
+	_, err = database.AddUserTelegram(database.Client, message.From.ID)
+	if err != nil {
+		return err
+	}
+
+
+	
 	text := "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234"
 
 	_err := b.setMessage(message, text)
@@ -87,14 +79,11 @@ func (b *Bot) handleStart(message *tgbotapi.Message) error {
 	return nil
 }
 
-
-
 func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	var (
-		login string
+		login    string
 		password string
 	)
-
 
 	if text := strings.Split(message.Text, "\n"); len(text) == 2 {
 		if err := strings.Split(text[0], "@"); len(err) == 1 {
@@ -108,7 +97,7 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 		password = text[1]
 
 	} else if len(text) == 1 {
-		_text := strings.Split(message.Text, " ") 
+		_text := strings.Split(message.Text, " ")
 		if len(_text) != 2 {
 			Reset_User_Command(message.From.ID, "reset_login")
 			log.Printf("new command: reset_login")
@@ -125,8 +114,8 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 
 		login = _text[0]
 		password = _text[1]
-	
-	} else { 
+
+	} else {
 		Reset_User_Command(message.From.ID, "reset_login")
 		log.Printf("new command: reset_login")
 		b.setMessage(message, "Данные указаны неверно, повторите попытку ещё раз.")
@@ -135,6 +124,3 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 
 	return login, password
 }
-
-
-

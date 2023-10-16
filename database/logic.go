@@ -112,7 +112,7 @@ func GetUsers() (*[]models.User, error) {
 
 
 // Доступ к пользователя по ID_telegram
-func GetUser(tg_id uint) (user models.User, err error) {
+func GetUser(tg_id int) (user models.User, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
   
@@ -134,7 +134,7 @@ func GetUser(tg_id uint) (user models.User, err error) {
 
 
 // Регистрация при /start, отправление ID_telegram в массив
-func AddUserTelegram(client *mongo.Client, tg_id uint) (models.Id_telegram, error) {
+func AddUserTelegram(client *mongo.Client, tg_id int) (models.Id_telegram, error) {
 	ctx := context.Background()
 	var id_telegram models.Id_telegram
 	id_telegram.Id_telegram = tg_id
@@ -148,7 +148,7 @@ func AddUserTelegram(client *mongo.Client, tg_id uint) (models.Id_telegram, erro
 
 
 // авторизация через бд - лк САМГК (с добавлением ID_telegram)
-func AuthenticateUser(client *mongo.Client, tg_id uint, login string, password string) (*models.User, error) {
+func AuthenticateUser(client *mongo.Client, tg_id int, login string, password string) (*models.User, error) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
