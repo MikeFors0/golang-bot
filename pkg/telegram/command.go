@@ -62,7 +62,7 @@ func (b *Bot) Reg(message *tgbotapi.Message, wg *sync.WaitGroup) error {
 
 func (b *Bot) Auth(message *tgbotapi.Message, wg *sync.WaitGroup) error {
 	defer wg.Done()
-	log.Println("Обработка запроса: " + message.Chat.UserName + message.Text)
+	log.Println("Обработка запроса: " + message.Chat.UserName + " " + message.Text)
 
 	bot_user, err := Get_User_Command(int(message.Chat.ID))
 	if err != nil {
