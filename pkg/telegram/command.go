@@ -1,7 +1,6 @@
 package telegram
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/MikeFors0/golang-bot/database"
@@ -9,9 +8,12 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+
+
+
 //запускает бота
 func (b *Bot) Start() error {
-	log.Printf("Authorized on account %v", &b.bot.Self.UserName)
+	log.Printf("Authorized on account %v", &b.bot.Self)
 
 	update, err := b.initUbdateChanel()
 	if err != nil {
@@ -37,19 +39,24 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 	Delete_User_Command(message.From.ID)
 
 
-	_, err := database.AuthenticateUser(login, password)
+	_, err := database.AuthenticateUser(database.Client, message.From.ID, login, password)
 	if err != nil {
-		database.AddUser(&models.User{Login: login, Password: password, User_ID: fmt.Sprint(message.From.ID)})
-	} else {
 		if err.Error() == "invalid password" {
 			Reset_User_Command(message.From.ID, "reset_login")
 			b.setMessage(message, "Неправильный проль, повторите попытку ещё раз.")
-		}
-		return nil
+			return nil
+		} else {
+			err := database.AddUser(&models.User{Login: login, Password: password, Tg_id: models.Id_telegram{Id_telegram: message.From.ID}})
+			if err != nil {
+				return err
+			}
+		} 
 	}
 
 
 	Push_Login_And_Password(message.From.ID, login, password)
+
+	b.setMessage(message, "Данные сохранены, чтобы проверить напишите /auth")
 
 	return nil
 }
@@ -62,7 +69,7 @@ func (b *Bot) Auth(message *tgbotapi.Message) error {
 	}
 
 
-	user, err := database.AuthenticateUser(bot_user.Login, bot_user.Password)
+	user, err := database.AuthenticateUser(database.Client, bot_user.ID, bot_user.Login, bot_user.Password)
 	if err != nil {
 		return err
 	}
