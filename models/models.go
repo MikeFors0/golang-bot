@@ -50,5 +50,5 @@ type Passage struct {
 }
 
 type Id_telegram struct {
-	Id_telegram string `json:"id_telegram" bson:"id_telegram"`
+	Id_telegram uint `json:"id_telegram" bson:"id_telegram"`
 }
