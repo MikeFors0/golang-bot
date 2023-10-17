@@ -11,7 +11,7 @@ import (
 // обработчик сообщений
 func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 
-	command_user, err := Get_User_Command(message.From.ID)
+	command_user, err := Get_User_Command(int(message.Chat.ID))
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
 
 
-	_, err = database.AddUserTelegram(database.Client, message.From.ID)
+	_, err = database.AddUserTelegram(database.Client, uint(message.Chat.ID))
 	if err != nil {
 		return err
 	}

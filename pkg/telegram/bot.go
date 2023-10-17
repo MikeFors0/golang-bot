@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"fmt"
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -19,7 +20,7 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 
 	for update := range updates {
 
-		log.Println("1: " + update.Message.Chat.UserName + " " + "2: " + update.Message.Text)
+		log.Println("username: " + update.Message.Chat.UserName + " text: " + update.Message.Text + " chat_id:" + fmt.Sprint(update.Message.Chat.ID)) 
 
 		//если обновлений нет, продолжит ожидать
 		if update.Message == nil {
@@ -28,7 +29,7 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 
 		//если это команда, перейдём в обработчик команд
 		if update.Message.IsCommand() {
-			b.handleCommand(int(update.Message.From.ID), update.Message)
+			b.handleCommand(int(update.Message.Chat.ID), update.Message)
 			continue
 		}
 
@@ -53,7 +54,7 @@ func (b *Bot) initUbdateChanel() (tgbotapi.UpdatesChannel, error) {
 //отправить сообщение в чат
 //принимает данные чата и текст сообщения, которое мы хотим отправить
 func (b *Bot) setMessage(message *tgbotapi.Message, text string) error {
-	msg := tgbotapi.NewMessage(int64(message.From.ID), text)
+	msg := tgbotapi.NewMessage(int64(message.Chat.ID), text)
 	_, err := b.bot.Send(msg)
 	return err
 }
