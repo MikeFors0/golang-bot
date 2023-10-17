@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -70,7 +71,6 @@ func AddUser(user *models.User) error {
 
 }
 
-
 // // просмотр всех пользователй в бд
 func GetUsers() (*[]models.User, error) {
 	cur, err := UserCollection.Find(context.Background(), bson.M{})
@@ -110,28 +110,23 @@ func GetUsers() (*[]models.User, error) {
 //     return nil
 // }
 
-
 // Доступ к пользователя по ID_telegram
-func GetUser(tg_id uint) (user models.User, err error) {
+func GetUser(fio_student string) (user models.User, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-  
-	var id_telegram models.Id_telegram
-	id_telegram.Id_telegram = tg_id
-  
-	err = UserCollection.FindOne(ctx, bson.M{"tg_id.id_telegram": tg_id}).Decode(&user)
-	if err != nil {
-	  if err == mongo.ErrNoDocuments {
-		fmt.Println("user not found")
-		return user, fmt.Errorf("user not found")
-	  }
-	  fmt.Println("error finding user")
-	  return user, fmt.Errorf("error finding user: %v", err)
-	}
-  
-	return user, nil
-  }
 
+	err = UserCollection.FindOne(ctx, bson.M{"fio_student": fio_student}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			fmt.Println("user not found")
+			return user, fmt.Errorf("user not found")
+		}
+		fmt.Println("error finding user")
+		return user, fmt.Errorf("error finding user: %v", err)
+	}
+
+	return user, nil
+}
 
 // Регистрация при /start, отправление ID_telegram в массив
 func AddUserTelegram(client *mongo.Client, tg_id uint) (models.Id_telegram, error) {
@@ -145,7 +140,6 @@ func AddUserTelegram(client *mongo.Client, tg_id uint) (models.Id_telegram, erro
 	fmt.Println(id_telegram)
 	return id_telegram, err
 }
-
 
 // авторизация через бд - лк САМГК (с добавлением ID_telegram)
 func AuthenticateUser(client *mongo.Client, tg_id uint, login string, password string) (*models.User, error) {
@@ -182,3 +176,103 @@ func AuthenticateUser(client *mongo.Client, tg_id uint, login string, password s
 	return user, nil
 }
 
+func CheckNewData() {
+	var lastId primitive.ObjectID // переменная для хранения последнего id в базе данных
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// поиск последнего id в базе данных
+		var lastData models.Passage
+		err := UserCollection.FindOne(ctx, bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1})).Decode(&lastData)
+		if err != nil {
+			fmt.Println("error finding last data:", err)
+			continue
+		}
+		lastId = lastData.Passage_ID
+
+		// поиск новых данных в базе данных
+		cur, err := UserCollection.Find(ctx, bson.M{"_id": bson.M{"$gt": lastId}})
+		if err != nil {
+			fmt.Println("error finding new data:", err)
+			continue
+		}
+
+		// отправка новых данных пользователю
+		for cur.Next(ctx) {
+			var data models.Passage
+			err := cur.Decode(&data)
+			if err != nil {
+				fmt.Println("error decoding data:", err)
+				continue
+			}
+
+			user, err := GetUser(data.FIO_student)
+			if err != nil {
+				fmt.Println("error getting user:", err)
+				continue
+			}
+
+			// отправка данных пользователю
+			err = SendDataToUser(user.Tg_id.Id_telegram, data)
+			if err != nil {
+				fmt.Println("error sending data to user:", err)
+				continue
+			}
+		}
+		cur.Close(ctx)
+		fmt.Println("ererer")
+		time.Sleep(1 * time.Minute) // задержка между проверками базы данных
+	}
+}
+
+func SendDataToUser(chatId uint, data models.Passage) error {
+	// создание нового сообщения
+	msg := fmt.Sprintf("New data: %s", data.Passage_ID)
+
+	// отправка сообщения
+	fmt.Println(msg)
+	return nil
+}
+
+func AddData(passage models.Passage) error {
+	ctx := context.Background()
+	validatorErr := validate.Struct(passage)
+	if validatorErr != nil {
+		log.Panic(validatorErr.Error())
+		fmt.Println(validatorErr.Error())
+	}
+	passage.Passage_ID = primitive.NewObjectID()
+	passage.Passage_At, _ = time.Parse(time.ANSIC, time.Now().Format(time.ANSIC))
+	_, insertErr := UserCollection.InsertOne(ctx, passage)
+	if insertErr != nil {
+		fmt.Sprintf("User item was not created", insertErr)
+		return nil
+	}
+	fmt.Println("Passage created!")
+	return nil
+}
+
+
+
+
+func GetAllPassage() ([]models.Passage, error) {
+    cur, err := UserCollection.Find(context.Background(), bson.M{})
+    if err != nil {
+        return nil, err
+    }
+    defer cur.Close(context.Background())
+
+    var passages []models.Passage
+    for cur.Next(context.Background()) {
+        var passage models.Passage
+        if err := cur.Decode(&passage); err != nil {
+            return nil, err
+        }
+		if passage.FIO_student == "" {
+			continue
+		}
+        passages = append(passages, passage)
+    }
+    return passages, nil
+}
