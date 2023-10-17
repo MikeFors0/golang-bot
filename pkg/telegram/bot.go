@@ -29,7 +29,7 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 
 		//если это команда, перейдём в обработчик команд
 		if update.Message.IsCommand() {
-			b.handleCommand(int(update.Message.Chat.ID), update.Message)
+			b.handleCommand(update.Message.Chat.ID, update.Message)
 			continue
 		}
 

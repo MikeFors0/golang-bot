@@ -6,21 +6,21 @@ import (
 )
 
 type User struct {
-	ID int
+	ID int64
 	Login string
 	Password string
 	Command string
 }
 
-var user_data = map[int]User{}
+var user_data = map[int64]User{}
 
-func Set_User_Command(userId int) error {
+func Set_User_Command(userId int64) error {
 
 	if user_data[userId].ID != 0 {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	user_data = make(map[int]User)
+	user_data = make(map[int64]User)
 
 	user_data[userId] = User{
 		ID: userId,
@@ -30,7 +30,7 @@ func Set_User_Command(userId int) error {
 	return nil
 }
 
-func Get_User_Command(userId int) (*User, error) {
+func Get_User_Command(userId int64) (*User, error) {
 	if userId == 0 {
 		return nil, errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
@@ -40,7 +40,7 @@ func Get_User_Command(userId int) (*User, error) {
 	return &user, nil
 }
 
-func Reset_User_Command(userId int, new_command string) error {
+func Reset_User_Command(userId int64, new_command string) error {
 	if userId == 0 {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
@@ -52,7 +52,7 @@ func Reset_User_Command(userId int, new_command string) error {
 	return nil
 }
 
-func Push_Login_And_Password(userId int, login, password string) error {
+func Push_Login_And_Password(userId int64, login, password string) error {
 	if userId == 0 {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
@@ -66,7 +66,7 @@ func Push_Login_And_Password(userId int, login, password string) error {
 }
 
 
-func Delete_User_Command(userId int) error {
+func Delete_User_Command(userId int64) error {
 	if userId == 0 {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}

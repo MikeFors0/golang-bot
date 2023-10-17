@@ -15,7 +15,7 @@ func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 
 	var wg sync.WaitGroup
 
-	command_user, err := Get_User_Command(int(message.Chat.ID))
+	command_user, err := Get_User_Command(message.Chat.ID)
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 }
 
 // обработчик команд
-func (b *Bot) handleCommand(chat_id int, message *tgbotapi.Message) error {
+func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message) error {
 
 	var wg sync.WaitGroup
 
@@ -64,14 +64,14 @@ func (b *Bot) handleCommand(chat_id int, message *tgbotapi.Message) error {
 
 func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
-	err := Set_User_Command(int(message.Chat.ID))
+	err := Set_User_Command(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
 
 
-	_, err = database.AddUserTelegram(database.Client, uint(message.Chat.ID))
+	_, err = database.AddUserTelegram(database.Client, message.Chat.ID)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	} else if len(text) == 1 {
 		_text := strings.Split(message.Text, " ")
 		if len(_text) != 2 {
-			Reset_User_Command(message.From.ID, "reset_login")
+			Reset_User_Command(message.Chat.ID, "reset_login")
 			log.Printf("new command: reset_login")
 			b.setMessage(message, "Данные указаны неверно, повторите попытку ещё раз.")
 			return "", ""
@@ -111,7 +111,7 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 		password = _text[1]
 
 	} else {
-		Reset_User_Command(message.From.ID, "reset_login")
+		Reset_User_Command(message.Chat.ID, "reset_login")
 		log.Printf("new command: reset_login")
 		b.setMessage(message, "Данные указаны неверно, повторите попытку ещё раз.")
 		return "", ""
