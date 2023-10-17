@@ -4,8 +4,12 @@ import (
 	"log"
 
 	"github.com/MikeFors0/golang-bot/database"
+	"github.com/MikeFors0/golang-bot/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
+
+
+
 
 //запускает бота
 func (b *Bot) Start() error {
@@ -41,12 +45,18 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 			Reset_User_Command(message.From.ID, "reset_login")
 			b.setMessage(message, "Неправильный проль, повторите попытку ещё раз.")
 			return nil
-		}
-		return err
+		} else {
+			err := database.AddUser(&models.User{Login: login, Password: password, Tg_id: models.Id_telegram{Id_telegram: message.From.ID}})
+			if err != nil {
+				return err
+			}
+		} 
 	}
 
 
 	Push_Login_And_Password(message.From.ID, login, password)
+
+	b.setMessage(message, "Данные сохранены, чтобы проверить напишите /auth")
 
 	return nil
 }

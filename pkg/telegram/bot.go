@@ -19,12 +19,12 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 
 	for update := range updates {
 
-		log.Println(update.Message)
+		log.Println("1: " + update.Message.Chat.UserName + " " + "2: " + update.Message.Text)
 
 		//если обновлений нет, продолжит ожидать
 		if update.Message == nil {
 			continue
-		}
+		} 
 
 		//если это команда, перейдём в обработчик команд
 		if update.Message.IsCommand() {
