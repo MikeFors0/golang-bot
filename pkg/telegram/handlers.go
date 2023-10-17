@@ -1,8 +1,10 @@
 package telegram
 
 import (
+	"fmt"
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/MikeFors0/golang-bot/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -11,6 +13,8 @@ import (
 // обработчик сообщений
 func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 
+	var wg sync.WaitGroup
+
 	command_user, err := Get_User_Command(int(message.Chat.ID))
 	if err != nil {
 		return err
@@ -18,17 +22,19 @@ func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 
 	switch command_user.Command {
 	case "start":
-		go b.Reg(message)
+		wg.Add(1)
+		go b.Reg(message, &wg)
 
 	case "reset_login":
-		go b.Reg(message)
+		wg.Add(1)
+		go b.Reg(message, &wg)
 
 	default:
-		_err := b.setMessage(message, "К сожалению, я не знаю такой команды =(")
-		if _err != nil {
-			return _err
-		}
+		b.setMessage(message, "К сожалению, я не знаю такой команды =(")
 	}
+
+
+	fmt.Scan()
 
 	return nil
 }
@@ -36,19 +42,22 @@ func (b *Bot) handleMessage(message *tgbotapi.Message) error {
 // обработчик команд
 func (b *Bot) handleCommand(chat_id int, message *tgbotapi.Message) error {
 
+	var wg sync.WaitGroup
+
 	switch message.Command() {
 	case "start":
+		wg.Add(1)
 		go b.handleStart(message)
 
 	case "auth":
-		go b.Auth(message)
+		wg.Add(1)
+		go b.Auth(message, &wg)
 
 	default:
-		_err := b.setMessage(message, "К сожалению, я не знаю такой команды =(")
-		if _err != nil {
-			return _err
-		}
+		b.setMessage(message, "К сожалению, я не знаю такой команды =((")
 	}
+
+	fmt.Scan()
 
 	return nil
 }
@@ -86,13 +95,6 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	)
 
 	if text := strings.Split(message.Text, "\n"); len(text) == 2 {
-		if err := strings.Split(text[0], "@"); len(err) == 1 {
-			Reset_User_Command(message.From.ID, "reset_login")
-			log.Printf("new command: reset_login")
-			b.setMessage(message, "Логин указан неверно, повторите попытку ещё раз.")
-			return "", ""
-		}
-
 		login = text[0]
 		password = text[1]
 
@@ -102,13 +104,6 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 			Reset_User_Command(message.From.ID, "reset_login")
 			log.Printf("new command: reset_login")
 			b.setMessage(message, "Данные указаны неверно, повторите попытку ещё раз.")
-			return "", ""
-		}
-
-		if err := strings.Split(text[0], "@"); len(err) == 1 {
-			Reset_User_Command(message.From.ID, "reset_login")
-			log.Printf("new command: reset_login")
-			b.setMessage(message, "Логин указан неверно, повторите попытку ещё раз.")
 			return "", ""
 		}
 

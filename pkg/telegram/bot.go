@@ -20,12 +20,12 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 
 	for update := range updates {
 
-		log.Println("username: " + update.Message.Chat.UserName + " text: " + update.Message.Text + " chat_id:" + fmt.Sprint(update.Message.Chat.ID)) 
+		log.Println("username: " + update.Message.Chat.UserName + " text: " + update.Message.Text + " chat_id:" + fmt.Sprint(update.Message.Chat.ID))
 
 		//если обновлений нет, продолжит ожидать
 		if update.Message == nil {
 			continue
-		} 
+		}
 
 		//если это команда, перейдём в обработчик команд
 		if update.Message.IsCommand() {
@@ -51,8 +51,8 @@ func (b *Bot) initUbdateChanel() (tgbotapi.UpdatesChannel, error) {
 	return update, nil
 }
 
-//отправить сообщение в чат
-//принимает данные чата и текст сообщения, которое мы хотим отправить
+// отправить сообщение в чат
+// принимает данные чата и текст сообщения, которое мы хотим отправить
 func (b *Bot) setMessage(message *tgbotapi.Message, text string) error {
 	msg := tgbotapi.NewMessage(int64(message.Chat.ID), text)
 	_, err := b.bot.Send(msg)
