@@ -1,7 +1,6 @@
 package telegram
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -37,23 +36,23 @@ func (b *Bot) Reg(message *tgbotapi.Message, wg *sync.WaitGroup) error {
 	}
 
 	//обнулим статус команды
-	Delete_User_Command(int(message.Chat.ID))
+	Delete_User_Command(message.Chat.ID)
 
-	_, err := database.AuthenticateUser(database.Client, uint(message.Chat.ID), login, password)
+	_, err := database.AuthenticateUser(database.Client, message.Chat.ID, login, password)
 	if err != nil {
 		if err.Error() == "invalid password" {
-			Reset_User_Command(int(message.Chat.ID), "reset_login")
+			Reset_User_Command(message.Chat.ID, "reset_login")
 			b.setMessage(message, "Неправильный проль, повторите попытку ещё раз.")
 			return nil
 		} else {
-			err := database.AddUser(&models.User{Login: login, Password: password, Tg_id: models.Id_telegram{Id_telegram: uint(message.Chat.ID)}})
+			err := database.AddUser(&models.User{Login: login, Password: password, Tg_id: models.Id_telegram{Id_telegram: message.Chat.ID}})
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	Push_Login_And_Password(int(message.Chat.ID), login, password)
+	Push_Login_And_Password(message.Chat.ID, login, password)
 
 	b.setMessage(message, "Данные сохранены, чтобы проверить напишите /auth")
 
@@ -64,12 +63,12 @@ func (b *Bot) Auth(message *tgbotapi.Message, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	log.Println("Обработка запроса: " + message.Chat.UserName + " " + message.Text)
 
-	bot_user, err := Get_User_Command(int(message.Chat.ID))
+	_, err := Get_User_Command(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
-	user, err := database.GetUser(fmt.Sprint(bot_user.ID))
+	user, err := database.GetUser(message.Chat.ID)
 	if err != nil {
 		return err
 	}

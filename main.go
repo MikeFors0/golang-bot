@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/MikeFors0/golang-bot/database"
 	"github.com/MikeFors0/golang-bot/models"
@@ -12,38 +10,38 @@ import (
 
 func main() {
 	user := models.User{
-		Login:       "Owner",
+		Login:       "trtr",
 		FIO_student: "Smolkin",
 		Password:    "1234",
 	}
 	database.AddUser(&user)
-	_, err := database.AddUserTelegram(database.Client, 3221)
+	_, err := database.AddUserTelegram(database.Client, 1469064658)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	_, err = database.AuthenticateUser(database.Client, 3221, "Owner", "1234")
+	_, err = database.AuthenticateUser(database.Client, 1469064658, "trtr", "1234")
 	if err != nil {
 		log.Panic(err)
 	}
-	users, err := database.GetAllPassage()
+	users, err := database.GetUser(1469064658)
 	if err != nil {
 		log.Panic(err)
 		return
 	}
 	log.Println(users)
 
-	database.CheckNewData()
-	passage := models.Passage{
-		FIO_student: "Smolkin",
-	}
-	time.Sleep(3 * time.Second)
-	res := database.AddData(passage)
-	fmt.Println(res)
+	// database.CheckNewData()
+	// passage := models.Passage{
+	// 	FIO_student: "Smolkin",
+	// }
+	// time.Sleep(3 * time.Second)
+	// res := database.AddData(passage)
+	// fmt.Println(res)
 
-	time.Sleep(3 * time.Second)
-	rr := database.AddData(passage)
-	fmt.Println(rr)
+	// time.Sleep(3 * time.Second)
+	// rr := database.AddData(passage)
+	// fmt.Println(rr)
 	// for _, user := range users {
 	// 	log.Println(user)
 	// }
