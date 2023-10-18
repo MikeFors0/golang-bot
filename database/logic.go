@@ -17,12 +17,9 @@ import (
 )
 
 var UserCollection *mongo.Collection = UserData(Client, "users")
+var PassageCollection *mongo.Collection = PassageData(Client, "passages")
 
 var validate = validator.New()
-
-func gg() {
-	fmt.Println("ff")
-}
 
 func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -40,13 +37,13 @@ func AddUser(user *models.User) error {
 	defer cancel()
 	if err != nil {
 		log.Panic(err)
-		fmt.Println("Error login, checking login")
+		fmt.Println("Ошибка логин, проверьте логин")
 
 	}
 
 	if count > 0 {
 		defer cancel()
-		fmt.Println("user already exists")
+		fmt.Println("Пользователь уже создан")
 	} else {
 		validatorErr := validate.Struct(user)
 		defer cancel()
@@ -60,10 +57,10 @@ func AddUser(user *models.User) error {
 		user.User_ID = user.ID.Hex()
 		_, insertErr := UserCollection.InsertOne(ctx, user)
 		if insertErr != nil {
-			fmt.Sprintf("User item was not created: %v", insertErr)
+			fmt.Println("Пользователь не может быть создан:", insertErr)
 		}
 		defer cancel()
-		fmt.Println("User created")
+		fmt.Println("Пользователь создан")
 		return nil
 	}
 	return nil
@@ -93,54 +90,66 @@ func GetUsers() (*[]models.User, error) {
 		log.Println(err)
 		return nil, err
 	}
+	for _, user := range users {
+		log.Println(user.FIO_student, user.Login, user.Logined, user.Passage_student)
+	}
 	return &users, nil
 }
 
-// func SendMessage( Logined bool, message string) error {
-//     if !Logined {
-//         return fmt.Errorf("User not authorized")
-//     }
-
-//     _, err := UserCollection.InsertOne(nil, bson.D{{"logined", Logined}, {"message", message}})
-//     if err != nil {
-//         return err
-//     }
-// 	fmt.Println("its okey", Logined)
-//     return nil
-// }
-
 // Доступ к пользователя по ID_telegram
-
-func GetUser(tg_id int64) (user models.User, err error) {
+func GetUser(tg_id int64) (*models.User, error) {
+	user := &models.User{}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-  
+
 	var id_telegram models.Id_telegram
 	id_telegram.Id_telegram = tg_id
-  
-	err = UserCollection.FindOne(ctx, bson.M{"tg_id.id_telegram": tg_id}).Decode(&user)
+
+	err := UserCollection.FindOne(ctx, bson.M{"tg_id.id_telegram": tg_id}).Decode(&user)
 	if err != nil {
-	  if err == mongo.ErrNoDocuments {
-		fmt.Println("user not found")
-		return user, fmt.Errorf("user not found")
-	  }
-	  fmt.Println("error finding user")
-	  return user, fmt.Errorf("error finding user: %v", err)
+		if err == mongo.ErrNoDocuments {
+			fmt.Println("пользователь не найден", err)
+			return nil, err
+		}
+		fmt.Println("ошибка при поиске пользователя", err)
+		return nil, err
 	}
+	log.Println(user.FIO_student, user.Login, user.Passage_student)
+	return user, nil
+}
+
+// Доступ к пользователя по fio
+func GetUserByFIO(fio_student string) (*models.User, error) {
+	user := &models.User{}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	err := UserCollection.FindOne(ctx, bson.M{"fio_student": fio_student}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			fmt.Println("пользователь не найден")
+			return nil, err
+		}
+		fmt.Println("ошибка при поиске пользователя")
+		return nil, err
+	}
+	// log.Println(user.FIO_student, user.Login, user.Passage_student)
 	return user, nil
 }
 
 // Регистрация при /start, отправление ID_telegram в массив
-func AddUserTelegram(client *mongo.Client, tg_id int64) (models.Id_telegram, error) {
+func AddUserTelegram(client *mongo.Client, tg_id int64) (*models.Id_telegram, error) {
 	ctx := context.Background()
 	var id_telegram models.Id_telegram
 	id_telegram.Id_telegram = tg_id
 	_, err := UserCollection.InsertOne(ctx, id_telegram)
 	if err != nil {
-		log.Panic("error ", err)
+		log.Println("error ", err)
+		return nil, err
 	}
-	fmt.Println(id_telegram)
-	return id_telegram, err
+	log.Println(id_telegram)
+	return &id_telegram, nil
 }
 
 // авторизация через бд - лк САМГК (с добавлением ID_telegram)
@@ -152,13 +161,13 @@ func AuthenticateUser(client *mongo.Client, tg_id int64, login string, password 
 
 	err := UserCollection.FindOne(ctx, bson.M{"login": login}).Decode(&user)
 	if err != nil {
-		fmt.Println("ere error finding user")
-		return nil, fmt.Errorf("error finding user: %v", err)
+		fmt.Println("ошибка при поиске пользователя")
+		return nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		fmt.Println("invalid password")
-		return nil, fmt.Errorf("invalid password")
+		fmt.Println("Неверный пароль")
+		return nil, err
 	}
 
 	user.Login = login
@@ -171,107 +180,78 @@ func AuthenticateUser(client *mongo.Client, tg_id int64, login string, password 
 
 	var _, errUpdateUserCollection = UserCollection.UpdateOne(ctx, filter, bson.M{"$set": user})
 	if errUpdateUserCollection != nil {
-		log.Fatalf("fatal update with mongoDB: ", errUpdateUserCollection)
+		log.Println("фатальное обновление с mongoDB: ", errUpdateUserCollection)
+		return nil, err
 	}
-	fmt.Println("You are logined in system:", user.Login, user.Logined, user.Tg_id)
+	fmt.Println("Вы вошли в систему:", user.Login, user.Logined, user.Tg_id)
 
 	return user, nil
 }
 
-// func CheckNewData() {
-// 	var lastId primitive.ObjectID // переменная для хранения последнего id в базе данных
-// 	for {
-// 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 		defer cancel()
-
-// 		// поиск последнего id в базе данных
-// 		var lastData models.Passage
-// 		err := UserCollection.FindOne(ctx, bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1})).Decode(&lastData)
-// 		if err != nil {
-// 			fmt.Println("error finding last data:", err)
-// 			continue
-// 		}
-// 		lastId = lastData.Passage_ID
-
-// 		// поиск новых данных в базе данных
-// 		cur, err := UserCollection.Find(ctx, bson.M{"_id": bson.M{"$gt": lastId}})
-// 		if err != nil {
-// 			fmt.Println("error finding new data:", err)
-// 			continue
-// 		}
-
-// 		// отправка новых данных пользователю
-// 		for cur.Next(ctx) {
-// 			var data models.Passage
-// 			err := cur.Decode(&data)
-// 			if err != nil {
-// 				fmt.Println("error decoding data:", err)
-// 				continue
-// 			}
-
-// 			user, err := GetUser(data.FIO_student)
-// 			if err != nil {
-// 				fmt.Println("error getting user:", err)
-// 				continue
-// 			}
-
-// 			// отправка данных пользователю
-// 			err = SendDataToUser(user.Tg_id.Id_telegram, data)
-// 			if err != nil {
-// 				fmt.Println("error sending data to user:", err)
-// 				continue
-// 			}
-// 		}
-// 		cur.Close(ctx)
-// 		fmt.Println("ererer")
-// 		time.Sleep(1 * time.Minute) // задержка между проверками базы данных
-// 	}
-// }
-
-func SendDataToUser(chatId uint, data models.Passage) error {
-	// создание нового сообщения
-	msg := fmt.Sprintf("New data: %s", data.Passage_ID)
-
-	// отправка сообщения
-	fmt.Println(msg)
-	return nil
-}
-
-func AddData(passage models.Passage) error {
+// Добавление passage
+func AddPassage(passage models.Passage) error {
 	ctx := context.Background()
-	validatorErr := validate.Struct(passage)
-	if validatorErr != nil {
-		log.Panic(validatorErr.Error())
-		fmt.Println(validatorErr.Error())
-	}
-	passage.Passage_ID = primitive.NewObjectID()
-	passage.Passage_At, _ = time.Parse(time.ANSIC, time.Now().Format(time.ANSIC))
-	_, insertErr := UserCollection.InsertOne(ctx, passage)
-	if insertErr != nil {
-		fmt.Sprintf("User item was not created", insertErr)
+
+	if err := validate.Struct(passage); err != nil {
+		log.Println("Ошибка проверки:", err)
 		return nil
 	}
-	fmt.Println("Passage created!")
+
+	passage.Passage_ID = primitive.NewObjectID()
+	passage.Passage_At = time.Now()
+
+	if _, err := PassageCollection.InsertOne(ctx, passage); err != nil {
+		log.Println("Ошибка вставки:", err)
+		return err
+	}
+	log.Println("Passage создан:", passage.FIO_student)
+
+	var user, err = GetUserByFIO(passage.FIO_student)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	filter := bson.M{"_id": user.ID}
+	if !user.Logined {
+		log.Println("пользователь не авторизирован")
+		return nil
+	}
+	user.Passage_student = append(user.Passage_student, passage)
+	if _, err := UserCollection.UpdateOne(ctx, filter, bson.M{"$set": user}); err != nil {
+		log.Println("ошибка вставки в пользователя:", err)
+		return err
+	}
+	log.Println("Passage отправлен:", passage.FIO_student)
 	return nil
 }
 
-func GetAllPassage() ([]models.Passage, error) {
-	cur, err := UserCollection.Find(context.Background(), bson.M{})
+// Просмотр всех passages
+func GetAllPassages() ([]models.Passage, error) {
+	ctx := context.Background()
+
+	cur, err := PassageCollection.Find(ctx, bson.M{})
 	if err != nil {
+		fmt.Println("Ошибка базы данных", err)
 		return nil, err
 	}
-	defer cur.Close(context.Background())
+	defer cur.Close(ctx)
 
 	var passages []models.Passage
-	for cur.Next(context.Background()) {
+	for cur.Next(ctx) {
 		var passage models.Passage
 		if err := cur.Decode(&passage); err != nil {
+			fmt.Println("ошибка декодирования:", err)
 			return nil, err
 		}
 		if passage.FIO_student == "" {
 			continue
 		}
 		passages = append(passages, passage)
+	}
+	for _, passage := range passages {
+		log.Println(passage.FIO_student)
+		log.Println(passage.Passage_At)
 	}
 	return passages, nil
 }
