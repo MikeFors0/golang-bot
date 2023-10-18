@@ -3,6 +3,8 @@ package telegram
 import (
 	"fmt"
 	"log"
+	"sync"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -18,24 +20,33 @@ func NewBot(bot *tgbotapi.BotAPI) *Bot {
 // обработчик обновлений
 func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 
+	var wg sync.WaitGroup
+
 	for update := range updates {
 
-		log.Println("username: " + update.Message.Chat.UserName + " text: " + update.Message.Text + " chat_id:" + fmt.Sprint(update.Message.Chat.ID))
+		log.Println("\n\nПолучено новое сообщение: " + "\nusername -> " + update.Message.Chat.UserName + "\ntext -> " + update.Message.Text + "\nchat_id -> " + fmt.Sprint(update.Message.Chat.ID) + "\nКонец\n")
 
 		//если обновлений нет, продолжит ожидать
 		if update.Message == nil {
 			continue
 		}
+		
 
 		//если это команда, перейдём в обработчик команд
 		if update.Message.IsCommand() {
-			b.handleCommand(update.Message.Chat.ID, update.Message)
+			wg.Add(1)
+			go b.handleCommand(update.Message.Chat.ID, update.Message, &wg)
+			time.Sleep(time.Second * 1)
+			continue
+		} else {      //если текст, перейдём в обработчик сообщений
+			wg.Add(1)
+			go b.handleMessage(update.Message, &wg)
+			time.Sleep(time.Second * 1)
 			continue
 		}
-
-		//если текст, перейдём в обработчик сообщений
-		b.handleMessage(update.Message)
 	}
+
+	wg.Wait()
 }
 
 // проверка обновлений (нет ли новых сообщений)
