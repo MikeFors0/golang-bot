@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -67,7 +68,7 @@ func AddUser(user *models.User) error {
 
 }
 
-// // просмотр всех пользователй в бд
+// просмотр всех пользователй в бд
 func GetUsers() (*[]models.User, error) {
 	cur, err := UserCollection.Find(context.Background(), bson.M{})
 	if err != nil {
@@ -255,3 +256,62 @@ func GetAllPassages() ([]models.Passage, error) {
 	}
 	return passages, nil
 }
+
+
+func CheckNewData() error{
+	var lastId primitive.ObjectID // переменная для хранения последнего id в базе данных
+	for {
+	  ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	  defer cancel()
+	
+	  // поиск последнего id в базе данных
+	  var lastData models.Passage
+	  err := PassageCollection.FindOne(ctx, bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1})).Decode(&lastData)
+	  if err != nil {
+		log.Println("ошибка при поиске последних данных:", err)
+		continue
+	  }
+	  lastId = lastData.Passage_ID
+	  log.Println(lastData)
+	  pass := models.Passage{
+		FIO_student: "gnome",
+	  }
+	  AddPassage(pass)
+	
+	  // поиск новых данных в базе данных
+	  cur, err := PassageCollection.Find(ctx, bson.M{"_id": bson.M{"$gt": lastId}})
+	  if err != nil {
+	  	log.Println("ошибка при поиске новых данных:", err)
+		continue
+	  }
+	  defer cur.Close(ctx)
+	
+	  for cur.Next(ctx) {
+	  var passage models.Passage
+	  if err := cur.Decode(&passage); err != nil {
+		log.Println("hh",err)
+		continue
+	  }
+	  var user models.User
+	  if err := UserCollection.FindOne(ctx, bson.M{"fio_student": passage.FIO_student}).Decode(&user); err != nil {
+		log.Println("обнаружена ошибка пользователя",err)
+		continue
+	  }
+	  if !user.Logined {
+		log.Print("Пользователь не может получить данные в массив, так как не авторизирован")
+		continue
+	  }
+	  err = SendDataToUser(user.Tg_id.Id_telegram, passage)
+	  if err != nil {
+		log.Println("Ошибка отправки данных пользователю")
+	  }
+	  if err := cur.Err(); err != nil {
+	  	log.Println("yy",err)
+	   }
+		cur.Close(ctx)
+		time.Sleep(5 * time.Second)
+		}
+	time.Sleep(5*time.Second)
+	}
+}
+
