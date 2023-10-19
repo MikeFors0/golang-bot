@@ -34,6 +34,16 @@ func UserData(client *mongo.Client, collectionName string) *mongo.Collection {
 	return collection
 }
 
+func PassageData(client *mongo.Client, collectionName string) *mongo.Collection {
+	var collection *mongo.Collection = client.Database("okoko").Collection(collectionName)
+	return collection
+}
+
+func Subscription(client *mongo.Client, collectionName string) *mongo.Collection {
+	var collection *mongo.Collection = client.Database("okoko").Collection(collectionName)
+	return collection
+}
+
 
 func SubscriptionData(collectionName string) *mongo.Collection {
 	return Client.Database("test3").Collection(collectionName)

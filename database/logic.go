@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/MikeFors0/golang-bot/models"
+	"github.com/MikeFors0/golang-bot/pkg/telegram"
+	"github.com/MikeFors0/golang-bot/telegram"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -19,7 +21,7 @@ import (
 
 var UserCollection *mongo.Collection = UserData(Client, "users")
 var PassageCollection *mongo.Collection = PassageData(Client, "passages")
-
+var SubscriptionCollection *mongo.Collection = Subscription(Client, "subscription")
 var validate = validator.New()
 
 func HashPassword(password string) string {
@@ -31,41 +33,35 @@ func HashPassword(password string) string {
 }
 
 // Создание пользователя в бд
-func AddUser(user *models.User) error {
-	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+func AddUser(*models.User) error {
+	user := models.User{}
+	ctx := context.Background()
 
 	count, err := UserCollection.CountDocuments(ctx, bson.M{"login": user.Login})
-	defer cancel()
 	if err != nil {
-		log.Panic(err)
-		fmt.Println("Ошибка логин, проверьте логин")
-
+		log.Println("ошибка логина, проверьте введенные данные")
+		return err
 	}
-
 	if count > 0 {
-		defer cancel()
-		fmt.Println("Пользователь уже создан")
-	} else {
-		validatorErr := validate.Struct(user)
-		defer cancel()
-		if validatorErr != nil {
-			log.Panic(validatorErr.Error())
-			fmt.Println(validatorErr.Error())
-		}
-		password := HashPassword(user.Password)
-		user.Password = password
-		user.ID = primitive.NewObjectID()
-		user.User_ID = user.ID.Hex()
-		_, insertErr := UserCollection.InsertOne(ctx, user)
-		if insertErr != nil {
-			fmt.Println("Пользователь не может быть создан:", insertErr)
-		}
-		defer cancel()
-		fmt.Println("Пользователь создан")
-		return nil
+		log.Println("пользователь уже есть в системе")
+		return err
 	}
+	validatorErr := validate.Struct(user)
+	if validatorErr != nil {
+		log.Println(validatorErr.Error())
+		return validatorErr
+	}
+	user.ID = primitive.NewObjectID()
+	user.User_ID = user.ID.Hex()
+	password := HashPassword(user.Password)
+	user.Password = password
+	_, insertErr := UserCollection.InsertOne(ctx, user)
+	if insertErr != nil {
+		log.Println(insertErr)
+		return insertErr
+	}
+	log.Println("пользователь успешно создан:", user.Login)
 	return nil
-
 }
 
 // просмотр всех пользователй в бд
@@ -257,61 +253,90 @@ func GetAllPassages() ([]models.Passage, error) {
 	return passages, nil
 }
 
-
-func CheckNewData() error{
+func CheckNewData() error {
 	var lastId primitive.ObjectID // переменная для хранения последнего id в базе данных
 	for {
-	  ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	  defer cancel()
-	
-	  // поиск последнего id в базе данных
-	  var lastData models.Passage
-	  err := PassageCollection.FindOne(ctx, bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1})).Decode(&lastData)
-	  if err != nil {
-		log.Println("ошибка при поиске последних данных:", err)
-		continue
-	  }
-	  lastId = lastData.Passage_ID
-	  log.Println(lastData)
-	  pass := models.Passage{
-		FIO_student: "gnome",
-	  }
-	  AddPassage(pass)
-	
-	  // поиск новых данных в базе данных
-	  cur, err := PassageCollection.Find(ctx, bson.M{"_id": bson.M{"$gt": lastId}})
-	  if err != nil {
-	  	log.Println("ошибка при поиске новых данных:", err)
-		continue
-	  }
-	  defer cur.Close(ctx)
-	
-	  for cur.Next(ctx) {
-	  var passage models.Passage
-	  if err := cur.Decode(&passage); err != nil {
-		log.Println("hh",err)
-		continue
-	  }
-	  var user models.User
-	  if err := UserCollection.FindOne(ctx, bson.M{"fio_student": passage.FIO_student}).Decode(&user); err != nil {
-		log.Println("обнаружена ошибка пользователя",err)
-		continue
-	  }
-	  if !user.Logined {
-		log.Print("Пользователь не может получить данные в массив, так как не авторизирован")
-		continue
-	  }
-	  err = SendDataToUser(user.Tg_id.Id_telegram, passage)
-	  if err != nil {
-		log.Println("Ошибка отправки данных пользователю")
-	  }
-	  if err := cur.Err(); err != nil {
-	  	log.Println("yy",err)
-	   }
-		cur.Close(ctx)
-		time.Sleep(5 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// поиск последнего id в базе данных
+		var lastData models.Passage
+		err := PassageCollection.FindOne(ctx, bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1})).Decode(&lastData)
+		if err != nil {
+			log.Println("ошибка при поиске последних данных:", err)
+			continue
 		}
-	time.Sleep(5*time.Second)
+		lastId = lastData.Passage_ID
+		log.Println(lastData)
+		pass := models.Passage{
+			FIO_student: "gnome",
+		}
+		AddPassage(pass)
+
+		// поиск новых данных в базе данных
+		cur, err := PassageCollection.Find(ctx, bson.M{"_id": bson.M{"$gt": lastId}})
+		if err != nil {
+			log.Println("ошибка при поиске новых данных:", err)
+			continue
+		}
+		defer cur.Close(ctx)
+
+		for cur.Next(ctx) {
+			var passage models.Passage
+			if err := cur.Decode(&passage); err != nil {
+				log.Println("hh", err)
+				continue
+			}
+			var user models.User
+			if err := UserCollection.FindOne(ctx, bson.M{"fio_student": passage.FIO_student}).Decode(&user); err != nil {
+				log.Println("обнаружена ошибка пользователя", err)
+				continue
+			}
+			if !user.Logined {
+				log.Print("Пользователь не может получить данные в массив, так как не авторизирован")
+				continue
+			}
+
+			err = SendDataToUser(telegram.Bot,user.Tg_id.Id_telegram, passage)
+			if err != nil {
+				log.Println("Ошибка отправки данных пользователю")
+			}
+			if err := cur.Err(); err != nil {
+				log.Println("yy", err)
+			}
+			cur.Close(ctx)
+			time.Sleep(5 * time.Second)
+		}
+		time.Sleep(5 * time.Second)
 	}
 }
 
+func AddSubscription(*models.Subscription) error {
+	subscription := models.Subscription{}
+	ctx := context.Background()
+
+	count, err := SubscriptionCollection.CountDocuments(ctx, bson.M{"subscription_name": subscription.Subscription_Name})
+	if err != nil {
+		log.Println("ошибка имени продукта", err)
+		return err
+	}
+
+	if count > 0 {
+		log.Println("продукт уже существует", err)
+		return err
+	}
+	validatorErr := validate.Struct(subscription)
+	if validatorErr != nil {
+		log.Println(validatorErr.Error())
+		return validatorErr
+	}
+	subscription.Subscription_ID = primitive.NewObjectID()
+
+	_, insertErr := SubscriptionCollection.InsertOne(ctx, subscription)
+	if insertErr != nil {
+		log.Println("Ошибка создания продукта", err)
+		return insertErr
+	}
+	log.Println("Продукт создан:", subscription.Subscription_Name)
+	return nil
+}
