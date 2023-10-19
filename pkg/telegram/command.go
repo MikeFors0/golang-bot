@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/MikeFors0/golang-bot/database"
+	"github.com/MikeFors0/golang-bot/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -32,7 +33,6 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 		return nil
 	}
 
-
 	_, err := database.AuthenticateUser(database.Client, message.Chat.ID, login, password)
 	if err != nil {
 		if err.Error() == "invalid password" {
@@ -51,7 +51,6 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 	b.setMessage(message, "Данные сохранены, чтобы проверить напишите /auth")
 
 	Reset_User_Command(user_comand_context, message.Chat.ID, "nil")
-
 
 	//после проверки убрать следующие строчки
 	user, __err := Get_User_Comand(user_comand_context, message.Chat.ID)
@@ -73,11 +72,23 @@ func (b *Bot) Auth(message *tgbotapi.Message) error {
 		return b.setMessage(message, err.Error())
 	}
 
-
 	//отправим сообщение в чат
-	_err := b.setMessage(message, "Ваш логин: " + user.Login)
+	_err := b.setMessage(message, "Ваш логин: "+user.Login)
 	if _err != nil {
 		return _err
+	}
+
+	return nil
+}
+
+func SendDataToUser(_bot *Bot, chatId int64, passage models.Passage) error {
+	// создание нового сообщения
+	msg := tgbotapi.NewMessage(chatId, fmt.Sprintf("New data: %s", passage.Info))
+
+	// отправка сообщения
+	_, err := _bot.bot.Send(msg)
+	if err != nil {
+		return err
 	}
 
 	return nil
