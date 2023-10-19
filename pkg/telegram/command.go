@@ -3,7 +3,7 @@ package telegram
 import (
 	"fmt"
 	"log"
-	"time"
+	// "time"
 
 	"github.com/MikeFors0/golang-bot/database"
 	"github.com/MikeFors0/golang-bot/models"
@@ -21,12 +21,15 @@ func (b *Bot) Start() error {
 
 	b.handleUpdates(update)
 
+
 	return nil
 }
 
 // авторизация, пользователь вводит свой логин и пароль
 // может сделать это через пробел, или с переносом на следующую строку
 func (b *Bot) Reg(message *tgbotapi.Message) error {
+
+	log.Println("Значение в контексте пользователя при выполнении командв старт: " + User_comand[message.Chat.ID])
 
 	login, password := b.handleLogin(message)
 	if login == "" || password == "" {
@@ -36,7 +39,7 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 	_, err := database.AuthenticateUser(database.Client, message.Chat.ID, login, password)
 	if err != nil {
 		if err.Error() == "invalid password" {
-			Reset_User_Command(user_comand_context, message.Chat.ID, "reset_login")
+			Reset_User_Command(message.Chat.ID, "reset_login")
 			b.setMessage(message, "Неправильный проль, повторите попытку ещё раз.")
 			return nil
 		}
@@ -50,25 +53,22 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 
 	b.setMessage(message, "Данные сохранены, чтобы проверить напишите /auth")
 
-	Reset_User_Command(user_comand_context, message.Chat.ID, "nil")
+	Delete_User_Command(message.Chat.ID) 
 
-	//после проверки убрать следующие строчки
-	user, __err := Get_User_Comand(user_comand_context, message.Chat.ID)
-	if __err != nil {
-		return __err
-	}
-
-	log.Println("После выполнения команды старт, у пользователя установлена команда: " + fmt.Sprint(user))
-
-	time.Sleep(time.Second * 3)
+	log.Println("После выполнения команды старт, у пользователя установлена команда: " + User_comand[message.Chat.ID])
 
 	return nil
 }
 
 func (b *Bot) Auth(message *tgbotapi.Message) error {
 
+	log.Println("При вызове Auth команда подьзователя: " + User_comand[message.Chat.ID])
+
 	user, err := database.GetUser(message.Chat.ID)
 	if err != nil {
+		if err.Error() == "user not found" {
+			return b.setMessage(message, "Нет такого пользователя, повторите попытку ещё раз, вызвав команду /start")
+		}
 		return b.setMessage(message, err.Error())
 	}
 
@@ -83,7 +83,7 @@ func (b *Bot) Auth(message *tgbotapi.Message) error {
 
 func SendDataToUser(_bot *Bot, chatId int64, passage models.Passage) error {
 	// создание нового сообщения
-	msg := tgbotapi.NewMessage(chatId, fmt.Sprintf("New data: %s", passage.Info))
+	msg := tgbotapi.NewMessage(chatId, fmt.Sprintf("New data: %s", passage))
 
 	// отправка сообщения
 	_, err := _bot.bot.Send(msg)
