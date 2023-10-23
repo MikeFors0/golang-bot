@@ -3,41 +3,33 @@ package telegram
 import (
 	"errors"
 	"fmt"
+	"log"
 )
 
-type User struct {
-	ID int64
-	Login string
-	Password string
-	Command string
-}
+var User_comand map[int64]string
 
-var user_data = map[int64]User{}
 
 func Set_User_Command(userId int64) error {
 
-	if user_data[userId].ID != 0 {
+	if userId == 0 {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	user_data = make(map[int64]User)
 
-	user_data[userId] = User{
-		ID: userId,
-		Command: "start",
-	}
+	User_comand[userId] = "start"
+
+	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + User_comand[userId])
 
 	return nil
 }
 
-func Get_User_Command(userId int64) (*User, error) {
+func Get_User_Comand(userId int64) (string, error) {
+
 	if userId == 0 {
-		return nil, errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
+		return "", errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	user := user_data[userId]
-
-	return &user, nil
+	return User_comand[userId], nil
 }
 
 func Reset_User_Command(userId int64, new_command string) error {
@@ -45,22 +37,11 @@ func Reset_User_Command(userId int64, new_command string) error {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	user_data[userId] = User{
-		Command: new_command,
-	}
+	log.Println("Команда пользователя до изменений: " + User_comand[userId])
 
-	return nil
-}
+	User_comand[userId] = new_command
 
-func Push_Login_And_Password(userId int64, login, password string) error {
-	if userId == 0 {
-		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
-	}
-
-	user_data[userId] = User{
-		Login: login,
-		Password: password,
-	}
+	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + 	User_comand[userId])
 
 	return nil
 }
@@ -71,10 +52,9 @@ func Delete_User_Command(userId int64) error {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	user_data[userId] = User{
-		Command: "none",
-	}
+	User_comand[userId] = "nil"
+
+	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + User_comand[userId])
 
 	return nil
-
 }
