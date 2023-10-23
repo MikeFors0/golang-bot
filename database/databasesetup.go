@@ -30,21 +30,21 @@ func Init() *mongo.Client {
 var Client *mongo.Client = Init()
 
 func UserData(client *mongo.Client, collectionName string) *mongo.Collection {
-	var collection *mongo.Collection = client.Database("okoko").Collection(collectionName)
+	var collection *mongo.Collection = client.Database("qwqwr").Collection(collectionName)
 	return collection
 }
 
 func PassageData(client *mongo.Client, collectionName string) *mongo.Collection {
-	var collection *mongo.Collection = client.Database("okoko").Collection(collectionName)
+	var collection *mongo.Collection = client.Database("qwqwr").Collection(collectionName)
 	return collection
 }
 
-func Subscription(client *mongo.Client, collectionName string) *mongo.Collection {
-	var collection *mongo.Collection = client.Database("okoko").Collection(collectionName)
-	return collection
-}
+// func Subscription(client *mongo.Client, collectionName string) *mongo.Collection {
+// 	var collection *mongo.Collection = client.Database("okoko").Collection(collectionName)
+// 	return collection
+// }
 
 
-func SubscriptionData(collectionName string) *mongo.Collection {
-	return Client.Database("test3").Collection(collectionName)
-}
+// func SubscriptionData(collectionName string) *mongo.Collection {
+// 	return Client.Database("test3").Collection(collectionName)
+// }

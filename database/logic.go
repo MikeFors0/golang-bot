@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	// "go/parser"
@@ -9,8 +10,7 @@ import (
 	"time"
 
 	"github.com/MikeFors0/golang-bot/models"
-	"github.com/MikeFors0/golang-bot/pkg/telegram"
-	"github.com/MikeFors0/golang-bot/telegram"
+	// "github.com/MikeFors0/golang-bot/pkg/telegram"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,7 +21,8 @@ import (
 
 var UserCollection *mongo.Collection = UserData(Client, "users")
 var PassageCollection *mongo.Collection = PassageData(Client, "passages")
-var SubscriptionCollection *mongo.Collection = Subscription(Client, "subscription")
+
+// var SubscriptionCollection *mongo.Collection = Subscription(Client, "subscription")
 var validate = validator.New()
 
 func HashPassword(password string) string {
@@ -33,35 +34,40 @@ func HashPassword(password string) string {
 }
 
 // Создание пользователя в бд
-func AddUser(*models.User) error {
-	user := models.User{}
-	ctx := context.Background()
+func AddUser(user *models.User) error {
+	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 
 	count, err := UserCollection.CountDocuments(ctx, bson.M{"login": user.Login})
+	defer cancel()
 	if err != nil {
-		log.Println("ошибка логина, проверьте введенные данные")
-		return err
+		log.Panic(err)
+		fmt.Println("Error login, checking login")
+
 	}
 	if count > 0 {
-		log.Println("пользователь уже есть в системе")
-		return err
+		defer cancel()
+		fmt.Println("user already exists")
+	} else {
+		validatorErr := validate.Struct(user)
+		defer cancel()
+		if validatorErr != nil {
+			log.Panic(validatorErr.Error())
+			fmt.Println(validatorErr.Error())
+		}
+		password := HashPassword(user.Password)
+		user.Password = password
+		user.ID = primitive.NewObjectID()
+		user.User_ID = user.ID.Hex()
+		_, insertErr := UserCollection.InsertOne(ctx, user)
+		if insertErr != nil {
+			fmt.Sprintf("User item was not created: %v", insertErr)
+		}
+		defer cancel()
+		fmt.Println("User created", user.Login)
+		return nil
 	}
-	validatorErr := validate.Struct(user)
-	if validatorErr != nil {
-		log.Println(validatorErr.Error())
-		return validatorErr
-	}
-	user.ID = primitive.NewObjectID()
-	user.User_ID = user.ID.Hex()
-	password := HashPassword(user.Password)
-	user.Password = password
-	_, insertErr := UserCollection.InsertOne(ctx, user)
-	if insertErr != nil {
-		log.Println(insertErr)
-		return insertErr
-	}
-	log.Println("пользователь успешно создан:", user.Login)
 	return nil
+
 }
 
 // просмотр всех пользователй в бд
@@ -297,7 +303,7 @@ func CheckNewData() error {
 				continue
 			}
 
-			err = SendDataToUser(telegram.Bot,user.Tg_id.Id_telegram, passage)
+			// err = telegram.SendDataToUser(&telegram.Bot{}, user.Tg_id.Id_telegram, passage)
 			if err != nil {
 				log.Println("Ошибка отправки данных пользователю")
 			}
@@ -311,32 +317,163 @@ func CheckNewData() error {
 	}
 }
 
-func AddSubscription(*models.Subscription) error {
-	subscription := models.Subscription{}
-	ctx := context.Background()
+func AddSubscription(sb *models.Subscription) error {
+	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 
-	count, err := SubscriptionCollection.CountDocuments(ctx, bson.M{"subscription_name": subscription.Subscription_Name})
+	count, err := UserCollection.CountDocuments(ctx, bson.M{"name": sb.Name})
+	defer cancel()
 	if err != nil {
 		log.Println("ошибка имени продукта", err)
 		return err
-	}
 
+	}
 	if count > 0 {
+		defer cancel()
 		log.Println("продукт уже существует", err)
 		return err
+	} else {
+		validatorErr := validate.Struct(sb)
+		defer cancel()
+		if validatorErr != nil {
+			log.Println(validatorErr.Error())
+			return validatorErr
+		}
+		sb.ID = primitive.NewObjectID()
+		_, insertErr := UserCollection.InsertOne(ctx, sb)
+		if insertErr != nil {
+			log.Println("Ошибка создания продукта", err)
+			return insertErr
+		}
+		defer cancel()
+		log.Println("Продукт создан:", sb)
+		return nil
 	}
-	validatorErr := validate.Struct(subscription)
-	if validatorErr != nil {
-		log.Println(validatorErr.Error())
-		return validatorErr
-	}
-	subscription.Subscription_ID = primitive.NewObjectID()
+}
 
-	_, insertErr := SubscriptionCollection.InsertOne(ctx, subscription)
-	if insertErr != nil {
-		log.Println("Ошибка создания продукта", err)
-		return insertErr
+// func AddSubscription(*models.Subscription) error {
+// 	subscription := models.Subscription{}
+// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+// 	count, err := SubscriptionCollection.CountDocuments(ctx, bson.M{"name": subscription.Name})
+// 	defer cancel()
+// 	if err != nil {
+// 		log.Println("ошибка имени продукта", err)
+// 		return err
+// 	}
+// 	fmt.Println(count)
+
+// 	if count >= 0 {
+// 		defer cancel()
+// 		log.Println("продукт уже существует", err)
+// 		return err
+// 	}
+// 	log.Println(count)
+// 	validatorErr := validate.Struct(subscription)
+// 	if validatorErr != nil {
+// 		log.Println(validatorErr.Error())
+// 		return validatorErr
+// 	}
+// 	subscription.ID = primitive.NewObjectID()
+
+// 	_, insertErr := SubscriptionCollection.InsertOne(ctx, subscription)
+// 	if insertErr != nil {
+// 		log.Println("Ошибка создания продукта", err)
+// 		return insertErr
+// 	}
+// 	log.Println("Продукт создан:", subscription)
+// 	return nil
+// }
+
+func BuySubscription(tg_id int64, subscriptionID primitive.ObjectID) error {
+	user, err := GetUser(tg_id)
+	if err != nil {
+		log.Println(err)
+		return err
 	}
-	log.Println("Продукт создан:", subscription.Subscription_Name)
+	log.Println(user)
+
+	var subscription models.Subscription
+	err = UserCollection.FindOne(context.Background(), bson.M{"_id": subscriptionID}).Decode(&subscription)
+	if err != nil {
+		log.Println("подписка не найдена")
+		return err
+	}
+	var id_telegram models.Id_telegram
+	id_telegram.Id_telegram = tg_id
+	subscriptionUser := models.SubscriptionUser{
+		Tg_id:          id_telegram,
+		SubscriptionID: subscriptionID,
+		StartDate:      time.Now(),
+		EndDate:        time.Now().AddDate(0, 1, 0), // Set end date to 1 month from now
+		IsActive:       true,
+	}
+
+	res, err := UserCollection.InsertOne(context.Background(), subscriptionUser)
+	if err != nil {
+		log.Println("Ошибка добавления подписки пользователя")
+		return err
+	}
+	log.Println(res)
+
+	subscriptionUserID, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		log.Println("Ошибка перехода по ID подписки пользователя")
+		return errors.New("Ошибка перехода по ID подписки пользователя")
+	}
+
+	order := models.Order{
+		SubscriptionUserID: subscriptionUserID,
+		Date:               time.Now(),
+	}
+
+	res, err = UserCollection.InsertOne(context.Background(), order)
+	if err != nil {
+		log.Println("Ошибка добавления заказа")
+		return err
+	}
+	log.Println(res)
+
+	orderID, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		log.Println("Ошибка перехода по ID заказа")
+		return errors.New("Ошибка перехода по ID заказа")
+	}
+
+	payment := models.Payment{
+		OrderID:    orderID,
+		Amount:     subscription.Price,
+		PaymentURL: "https://example.com/payment", // Replace with actual payment URL
+	}
+
+	_, err = UserCollection.InsertOne(context.Background(), payment)
+	if err != nil {
+		log.Println("Ошибка добавления документа оплаты")
+		return err
+	}
+	log.Println(payment, order. SubscriptionUserID)
 	return nil
 }
+
+
+func CheckSubscription(tg_id int64) (bool, error) {
+	user, err := GetUser(tg_id)
+	if err != nil {
+	  log.Println(err)
+	  return false, err
+	}
+  
+	var subscriptionUser models.SubscriptionUser
+	err = UserCollection.FindOne(context.Background(), bson.M{"tg_id": user.Tg_id}).Decode(&subscriptionUser)
+	if err != nil {
+	  log.Println("Подписка не найдена")
+	  return false, err
+	}
+	log.Println(subscriptionUser)
+  
+	if !subscriptionUser.IsActive || time.Now().After(subscriptionUser.EndDate) {
+	  log.Println("Подписка истекла")
+	  return false, nil
+	}
+	log.Println("подиска +")
+	return true, nil
+  }
