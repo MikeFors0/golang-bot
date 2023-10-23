@@ -257,7 +257,7 @@ func GetAllPassages() ([]models.Passage, error) {
 	return passages, nil
 }
 
-func CheckNewData() (*models.Passage, error) {
+func CheckNewData() (*models.User, *models.Passage, error) {
 	var lastId primitive.ObjectID // переменная для хранения последнего id в базе данных
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -309,7 +309,7 @@ func CheckNewData() (*models.Passage, error) {
 				log.Println("yy", err)
 			}
 			cur.Close(ctx)
-			return &passage, nil
+			return &user, &passage, nil
 
 		}
 		
