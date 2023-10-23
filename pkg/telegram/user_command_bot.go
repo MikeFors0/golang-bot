@@ -1,63 +1,60 @@
 package telegram
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
 )
 
-
-var user_comand_context context.Context
-
-func Init_Context() {
-	user_comand_context = context.Background()
-}
+var User_comand map[int64]string
 
 
-func Set_User_Command(ctx context.Context, userId int64) error {
+func Set_User_Command(userId int64) error {
 
 	if userId == 0 {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	_ = context.WithValue(ctx, fmt.Sprint(userId), "start")
 
-	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + fmt.Sprint(ctx.Value(userId)))
+	User_comand[userId] = "start"
+
+	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + User_comand[userId])
 
 	return nil
 }
 
-func Get_User_Comand(ctx context.Context, userId int64) (any, error) {
+func Get_User_Comand(userId int64) (string, error) {
 
 	if userId == 0 {
-		return nil, errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
+		return "", errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	return ctx.Value(userId), nil
+	return User_comand[userId], nil
 }
 
-func Reset_User_Command(ctx context.Context, userId int64, new_command string) error {
+func Reset_User_Command(userId int64, new_command string) error {
 	if userId == 0 {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	context.WithValue(ctx, userId, new_command)
+	log.Println("Команда пользователя до изменений: " + User_comand[userId])
 
-	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + fmt.Sprint(ctx.Value(userId)))
+	User_comand[userId] = new_command
+
+	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + 	User_comand[userId])
 
 	return nil
 }
 
 
-func Delete_User_Command(ctx context.Context, userId int64) error {
+func Delete_User_Command(userId int64) error {
 	if userId == 0 {
 		return errors.New("invalid user id:" + fmt.Sprintf("%c", userId))
 	}
 
-	_ = context.WithValue(ctx, userId, "nil")
+	User_comand[userId] = "nil"
 
-	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + fmt.Sprint(ctx.Value(userId)))
+	log.Println("Пользователю с id: " + fmt.Sprint(userId) + " присовоена новая команда -> " + User_comand[userId])
 
 	return nil
 }
