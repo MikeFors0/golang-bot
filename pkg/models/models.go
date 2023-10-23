@@ -12,7 +12,7 @@ type User struct {
 	Password        string             `json:"password" bson:"password"`
 	FIO_student     string             `json:"fio_student" bson:"fio_student"`
 	User_ID         string             `json:"user_id" bson:"user_id"`
-	Passage_student []Passage          `json:"passage_student" bson:"passage_student"`
+	// Passage_student []Passage          `json:"passage_student" bson:"passage_student"`
 	Logined         bool               `json:"logined" bson:"logined"`
 	Tg_id           Id_telegram        `json:"tg_id" bson:"tg_id"`
 }
@@ -26,7 +26,7 @@ type Subscription struct {
 
 type SubscriptionUser struct {
 	ID             primitive.ObjectID `bson:"_id"`
-	Tg_id          Id_telegram        `bson:"tg_id"`
+	Tg_id          Id_telegram        `json:"id_tg" bson:"id_tg"`
 	SubscriptionID primitive.ObjectID `bson:"subscription_id"`
 	StartDate      time.Time          `bson:"start_date"`
 	EndDate        time.Time          `bson:"end_date"`

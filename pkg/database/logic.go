@@ -5,12 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	// "go/parser"
 	"log"
 	"time"
 
-	"github.com/MikeFors0/golang-bot/models"
-	// "github.com/MikeFors0/golang-bot/pkg/telegram"
+	"github.com/MikeFors0/golang-bot/pkg/models"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -94,7 +92,7 @@ func GetUsers() (*[]models.User, error) {
 		return nil, err
 	}
 	for _, user := range users {
-		log.Println(user.FIO_student, user.Login, user.Logined, user.Passage_student)
+		log.Println(user.FIO_student, user.Login, user.Logined)
 	}
 	return &users, nil
 }
@@ -117,7 +115,7 @@ func GetUser(tg_id int64) (*models.User, error) {
 		fmt.Println("ошибка при поиске пользователя", err)
 		return nil, err
 	}
-	log.Println(user.FIO_student, user.Login, user.Passage_student)
+	log.Println(user.FIO_student, user.Login)
 	return user, nil
 }
 
@@ -209,23 +207,23 @@ func AddPassage(passage models.Passage) error {
 	}
 	log.Println("Passage создан:", passage.FIO_student)
 
-	var user, err = GetUserByFIO(passage.FIO_student)
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
+	// var user, err = GetUserByFIO(passage.FIO_student)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return nil
+	// }
 
-	filter := bson.M{"_id": user.ID}
-	if !user.Logined {
-		log.Println("пользователь не авторизирован")
-		return nil
-	}
-	user.Passage_student = append(user.Passage_student, passage)
-	if _, err := UserCollection.UpdateOne(ctx, filter, bson.M{"$set": user}); err != nil {
-		log.Println("ошибка вставки в пользователя:", err)
-		return err
-	}
-	log.Println("Passage отправлен:", passage.FIO_student)
+	// filter := bson.M{"_id": user.ID}
+	// if !user.Logined {
+	// 	log.Println("пользователь не авторизирован")
+	// 	return nil
+	// }
+	// user.Passage_student = append(user.Passage_student, passage)
+	// if _, err := UserCollection.UpdateOne(ctx, filter, bson.M{"$set": user}); err != nil {
+	// 	log.Println("ошибка вставки в пользователя:", err)
+	// 	return err
+	// }
+	// log.Println("Passage отправлен:", passage.FIO_student)
 	return nil
 }
 
@@ -259,7 +257,7 @@ func GetAllPassages() ([]models.Passage, error) {
 	return passages, nil
 }
 
-func CheckNewData() error {
+func CheckNewData() (*models.Passage, error) {
 	var lastId primitive.ObjectID // переменная для хранения последнего id в базе данных
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -304,15 +302,18 @@ func CheckNewData() error {
 			}
 
 			// err = telegram.SendDataToUser(&telegram.Bot{}, user.Tg_id.Id_telegram, passage)
-			if err != nil {
-				log.Println("Ошибка отправки данных пользователю")
-			}
+			// if err != nil {
+			// 	log.Println("Ошибка отправки данных пользователю")
+			// }
 			if err := cur.Err(); err != nil {
 				log.Println("yy", err)
 			}
 			cur.Close(ctx)
-			time.Sleep(5 * time.Second)
+			return &passage, nil
+
 		}
+		
+		
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -349,40 +350,6 @@ func AddSubscription(sb *models.Subscription) error {
 		return nil
 	}
 }
-
-// func AddSubscription(*models.Subscription) error {
-// 	subscription := models.Subscription{}
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-
-// 	count, err := SubscriptionCollection.CountDocuments(ctx, bson.M{"name": subscription.Name})
-// 	defer cancel()
-// 	if err != nil {
-// 		log.Println("ошибка имени продукта", err)
-// 		return err
-// 	}
-// 	fmt.Println(count)
-
-// 	if count >= 0 {
-// 		defer cancel()
-// 		log.Println("продукт уже существует", err)
-// 		return err
-// 	}
-// 	log.Println(count)
-// 	validatorErr := validate.Struct(subscription)
-// 	if validatorErr != nil {
-// 		log.Println(validatorErr.Error())
-// 		return validatorErr
-// 	}
-// 	subscription.ID = primitive.NewObjectID()
-
-// 	_, insertErr := SubscriptionCollection.InsertOne(ctx, subscription)
-// 	if insertErr != nil {
-// 		log.Println("Ошибка создания продукта", err)
-// 		return insertErr
-// 	}
-// 	log.Println("Продукт создан:", subscription)
-// 	return nil
-// }
 
 func BuySubscription(tg_id int64, subscriptionID primitive.ObjectID) error {
 	user, err := GetUser(tg_id)
@@ -450,30 +417,29 @@ func BuySubscription(tg_id int64, subscriptionID primitive.ObjectID) error {
 		log.Println("Ошибка добавления документа оплаты")
 		return err
 	}
-	log.Println(payment, order. SubscriptionUserID)
+	log.Println(payment, order.SubscriptionUserID)
 	return nil
 }
-
 
 func CheckSubscription(tg_id int64) (bool, error) {
 	user, err := GetUser(tg_id)
 	if err != nil {
-	  log.Println(err)
-	  return false, err
+		log.Println(err)
+		return false, err
 	}
-  
+
 	var subscriptionUser models.SubscriptionUser
-	err = UserCollection.FindOne(context.Background(), bson.M{"tg_id": user.Tg_id}).Decode(&subscriptionUser)
+	err = UserCollection.FindOne(context.Background(), bson.M{"id_tg": user.Tg_id}).Decode(&subscriptionUser)
 	if err != nil {
-	  log.Println("Подписка не найдена")
-	  return false, err
+		log.Println("Подписка не найдена")
+		return false, err
 	}
 	log.Println(subscriptionUser)
-  
+
 	if !subscriptionUser.IsActive || time.Now().After(subscriptionUser.EndDate) {
-	  log.Println("Подписка истекла")
-	  return false, nil
+		log.Println("Подписка истекла")
+		return false, nil
 	}
 	log.Println("подиска +")
 	return true, nil
-  }
+}

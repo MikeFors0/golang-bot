@@ -3,10 +3,12 @@ package telegram
 import (
 	"fmt"
 	"log"
+
 	// "time"
 
-	"github.com/MikeFors0/golang-bot/database"
-	"github.com/MikeFors0/golang-bot/models"
+
+	"github.com/MikeFors0/golang-bot/pkg/models"
+	"github.com/MikeFors0/golang-bot/pkg/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -20,7 +22,6 @@ func (b *Bot) Start() error {
 	}
 
 	b.handleUpdates(update)
-
 
 	return nil
 }
@@ -53,7 +54,7 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 
 	b.setMessage(message, "Данные сохранены, чтобы проверить напишите /auth")
 
-	Delete_User_Command(message.Chat.ID) 
+	Delete_User_Command(message.Chat.ID)
 
 	log.Println("После выполнения команды старт, у пользователя установлена команда: " + User_comand[message.Chat.ID])
 

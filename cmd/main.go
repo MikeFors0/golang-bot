@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/MikeFors0/golang-bot/database"
-	"github.com/MikeFors0/golang-bot/models"
+	"github.com/MikeFors0/golang-bot/pkg/database"
+	"github.com/MikeFors0/golang-bot/pkg/models"
 	"github.com/MikeFors0/golang-bot/pkg/telegram"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )

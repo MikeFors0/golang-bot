@@ -9,7 +9,7 @@ import (
 
 	// "time"
 
-	"github.com/MikeFors0/golang-bot/database"
+	"github.com/MikeFors0/golang-bot/pkg/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
