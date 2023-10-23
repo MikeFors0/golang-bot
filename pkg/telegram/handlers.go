@@ -31,7 +31,7 @@ func (b *Bot) handleMessage(message *tgbotapi.Message, wg *sync.WaitGroup) error
 		return b.Reg(message)
 
 	default:
-		return b.setMessage(message, "К сожалению, я не знаю такой команды =(")
+		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =(")
 	}
 }
 
@@ -47,7 +47,7 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 		return b.Auth(message)
 
 	default:
-		return b.setMessage(message, "К сожалению, я не знаю такой команды =((")
+		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =((")
 	}
 
 	// return nil
@@ -63,7 +63,7 @@ func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
 	log.Println("Добавили пользователя в бд")
 
-	___err := b.setMessage(message, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234")
+	___err := b.setMessage(message.Chat.ID, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234")
 	if ___err != nil {
 		return ___err
 	}
@@ -99,7 +99,7 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 		if len(_text) != 2 {
 			Reset_User_Command(message.Chat.ID, "reset_login")
 			log.Printf("new command: reset_login")
-			b.setMessage(message, "Данные указаны неверно, повторите попытку ещё раз.")
+			b.setMessage(message.Chat.ID, "Данные указаны неверно, повторите попытку ещё раз.")
 			return "", ""
 		}
 
@@ -109,7 +109,7 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	} else {
 		Reset_User_Command(message.Chat.ID, "reset_login")
 		log.Printf("new command: reset_login")
-		b.setMessage(message, "Данные указаны неверно, повторите попытку ещё раз.")
+		b.setMessage(message.Chat.ID, "Данные указаны неверно, повторите попытку ещё раз.")
 		return "", ""
 	}
 
@@ -117,8 +117,3 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 }
 
 
-
-// func (b *Bot) handleRequest(message *tgbotapi.Message) {
-// 	log.Println("Обработка запроса: " + message.Chat.UserName + " " + message.Text)
-// 	time.Sleep(time.Second * 2)
-// }

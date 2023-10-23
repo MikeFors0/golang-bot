@@ -21,6 +21,8 @@ func (b *Bot) Start() error {
 		return err
 	}
 
+	go b.GetPassage()
+
 	b.handleUpdates(update)
 
 	return nil
@@ -41,7 +43,7 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 	if err != nil {
 		if err.Error() == "invalid password" {
 			Reset_User_Command(message.Chat.ID, "reset_login")
-			b.setMessage(message, "Неправильный проль, повторите попытку ещё раз.")
+			b.setMessage(message.Chat.ID, "Неправильный проль, повторите попытку ещё раз.")
 			return nil
 		}
 		// else {
@@ -52,7 +54,7 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 		// }
 	}
 
-	b.setMessage(message, "Данные сохранены, чтобы проверить напишите /auth")
+	b.setMessage(message.Chat.ID, "Данные сохранены, чтобы проверить напишите /auth")
 
 	Delete_User_Command(message.Chat.ID)
 
@@ -68,13 +70,13 @@ func (b *Bot) Auth(message *tgbotapi.Message) error {
 	user, err := database.GetUser(message.Chat.ID)
 	if err != nil {
 		if err.Error() == "user not found" {
-			return b.setMessage(message, "Нет такого пользователя, повторите попытку ещё раз, вызвав команду /start")
+			return b.setMessage(message.Chat.ID, "Нет такого пользователя, повторите попытку ещё раз, вызвав команду /start")
 		}
-		return b.setMessage(message, err.Error())
+		return b.setMessage(message.Chat.ID, err.Error())
 	}
 
 	//отправим сообщение в чат
-	_err := b.setMessage(message, "Ваш логин: "+user.Login)
+	_err := b.setMessage(message.Chat.ID, "Ваш логин: "+user.Login)
 	if _err != nil {
 		return _err
 	}

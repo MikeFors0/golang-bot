@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	// "github.com/MikeFors0/golang-bot/pkg/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -30,7 +31,6 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 		if update.Message == nil {
 			continue
 		}
-		
 
 		//если это команда, перейдём в обработчик команд
 		if update.Message.IsCommand() {
@@ -38,7 +38,7 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 			go b.handleCommand(update.Message.Chat.ID, update.Message, &wg)
 			time.Sleep(time.Second * 1)
 			continue
-		} else {      //если текст, перейдём в обработчик сообщений
+		} else { //если текст, перейдём в обработчик сообщений
 			wg.Add(1)
 			go b.handleMessage(update.Message, &wg)
 			time.Sleep(time.Second * 1)
@@ -64,8 +64,21 @@ func (b *Bot) initUbdateChanel() (tgbotapi.UpdatesChannel, error) {
 
 // отправить сообщение в чат
 // принимает данные чата и текст сообщения, которое мы хотим отправить
-func (b *Bot) setMessage(message *tgbotapi.Message, text string) error {
-	msg := tgbotapi.NewMessage(int64(message.Chat.ID), text)
+func (b *Bot) setMessage(userId int64, text string) error {
+	msg := tgbotapi.NewMessage(userId, text)
 	_, err := b.bot.Send(msg)
 	return err
+}
+
+func (b *Bot) GetPassage() {
+	u := time.Second * 5
+
+	for u != time.Second * 1 {
+		time.Sleep(u)
+		// user, new_passage, err := database.CheckNewData()
+		// if err != nil {
+			// log.Println(err)
+		// }
+		// b.setMessage(user.Tg_id.Id_telegram, fmt.Sprint(new_passage))
+	}
 }

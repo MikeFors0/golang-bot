@@ -15,13 +15,13 @@ func main() {
 
 	user := models.User{
 		Login:       "Ira",
-		FIO_student: "Smolkin",
+		FIO_student: "G",
 		Password:    "1111",
 	}
 
 	user2 := models.User{
 		Login:       "Gandon",
-		FIO_student: "Smolkin",
+		FIO_student: "Ter",
 		Password:    "2222",
 	}
 
@@ -33,7 +33,7 @@ func main() {
 
 	user4 := models.User{
 		Login:       "Admin",
-		FIO_student: "Smolkin",
+		FIO_student: "Youre",
 		Password:    "4444",
 	}
 
@@ -41,7 +41,6 @@ func main() {
 	database.AddUser(&user2)
 	database.AddUser(&user3)
 	database.AddUser(&user4)
-	
 
 	bot, err := tgbotapi.NewBotAPI("6142224756:AAFYO2_mgxeumSMEd6rJjpuhwSufJC7ti7E")
 	if err != nil {
@@ -53,5 +52,7 @@ func main() {
 	if err := telegramBot.Start(); err != nil {
 		log.Fatal(err)
 	}
+
+	telegramBot.GetPassage()
 
 }
