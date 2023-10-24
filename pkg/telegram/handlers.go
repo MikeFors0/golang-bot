@@ -3,6 +3,7 @@ package telegram
 import (
 	// "context"
 	// "fmt"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -16,7 +17,6 @@ import (
 // обработчик сообщений
 func (b *Bot) handleMessage(message *tgbotapi.Message, wg *sync.WaitGroup) error {
 	defer wg.Done()
-
 
 	user, err := Get_User_Comand(message.Chat.ID)
 	if err != nil {
@@ -45,7 +45,8 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 
 	case "auth":
 		return b.Auth(message)
-
+	case "buy":
+		return b.buy(message)
 	default:
 		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =((")
 	}
@@ -55,8 +56,7 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 
 func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
-
-	_, err := database.AddUserTelegram(database.Client, message.Chat.ID)
+	_, err := database.AddUserTelegram( message.Chat.ID)
 	if err != nil {
 		return err
 	}
@@ -70,14 +70,12 @@ func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
 	log.Println("Отправили сообщение")
 
-
 	err = Set_User_Command(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
 	log.Println("Обратились к Set_User_Command")
-
 
 	// log.Println("После handleStart у пользователя установлена команда: " + fmt.Sprint(ctx.Value(message.Chat.ID)))
 
@@ -116,4 +114,34 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	return login, password
 }
 
+func (bot *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) {
+	pca := tgbotapi.PreCheckoutConfig{
+		PreCheckoutQueryID: update.PreCheckoutQuery.ID,
+		OK:                 true,
+	}
 
+	_, err := bot.bot.AnswerPreCheckoutQuery(pca)
+	if err != nil {
+		log.Println("handlePreCheckount",err)
+	}
+}
+
+func (bot *Bot) HandleSuccessfulPayment(update tgbotapi.Update) {
+	message := update.Message
+
+	paymentInfo := message.SuccessfulPayment
+
+	paymentMessage := fmt.Sprintf("Платеж на сумму %d %s прошел успешно!!!",
+		paymentInfo.TotalAmount/100, paymentInfo.Currency)
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, paymentMessage)
+	_, err := bot.bot.Send(msg)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+// func (b *Bot) handleRequest(message *tgbotapi.Message) {
+// 	log.Println("Обработка запроса: " + message.Chat.UserName + " " + message.Text)
+// 	time.Sleep(time.Second * 2)
+// }

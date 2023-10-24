@@ -32,6 +32,12 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 			continue
 		}
 
+		if update.PreCheckoutQuery != nil {
+			b.HandlePreCheckoutQuery(&update)
+		} else if update.Message != nil && update.Message.SuccessfulPayment != nil {
+			b.HandleSuccessfulPayment(update)
+		}
+
 		//если это команда, перейдём в обработчик команд
 		if update.Message.IsCommand() {
 			wg.Add(1)
@@ -44,6 +50,7 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 			time.Sleep(time.Second * 1)
 			continue
 		}
+
 	}
 
 	wg.Wait()
