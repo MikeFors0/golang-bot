@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
 	"github.com/MikeFors0/golang-bot/pkg/models"
@@ -12,17 +13,18 @@ func main() {
 	database.AddUserTelegram(3030)
 	database.AuthenticateUser(3030, "Owner", "1234")
 	log.Println(database.GetAllPassages())
-	// database.AddPassage(models.Passage{FIO_student: "Mem"})
-	// for {
-	// 	user, passage, err := database.SearchItemInDB()
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
 
-	// 	log.Println(user, passage)
+	database.AddPassage(models.Passage{FIO_student: "Mem"})
+	for {
+		user, passage, err := database.SearchItemInDB()
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	// 	time.Sleep(10 * time.Second)
-	// }
+		log.Println(user, passage)
+
+		time.Sleep(10 * time.Second)
+	}
 
 	// database.AddPassage(models.Passage{FIO_student: "Smolkin"})
 
