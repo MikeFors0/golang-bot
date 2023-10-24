@@ -140,7 +140,7 @@ func GetUserByFIO(fio_student string) (*models.User, error) {
 }
 
 // Регистрация при /start, отправление ID_telegram в массив
-func AddUserTelegram(client *mongo.Client, tg_id int64) (*models.Id_telegram, error) {
+func AddUserTelegram(tg_id int64) (*models.Id_telegram, error) {
 	ctx := context.Background()
 	var id_telegram models.Id_telegram
 	id_telegram.Id_telegram = tg_id
@@ -154,7 +154,7 @@ func AddUserTelegram(client *mongo.Client, tg_id int64) (*models.Id_telegram, er
 }
 
 // авторизация через бд - лк САМГК (с добавлением ID_telegram)
-func AuthenticateUser(client *mongo.Client, tg_id int64, login string, password string) (*models.User, error) {
+func AuthenticateUser(tg_id int64, login string, password string) (*models.User, error) {
 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -257,66 +257,39 @@ func GetAllPassages() ([]models.Passage, error) {
 	return passages, nil
 }
 
-func CheckNewData() (*models.User, *models.Passage, error) {
-	var lastId primitive.ObjectID // переменная для хранения последнего id в базе данных
-	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		// поиск последнего id в базе данных
-		var lastData models.Passage
-		err := PassageCollection.FindOne(ctx, bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1})).Decode(&lastData)
-		if err != nil {
-			log.Println("ошибка при поиске последних данных:", err)
-			continue
-		}
-		lastId = lastData.Passage_ID
-		log.Println(lastData)
-		pass := models.Passage{
-			FIO_student: "gnome",
-		}
-		AddPassage(pass)
-
-		// поиск новых данных в базе данных
-		cur, err := PassageCollection.Find(ctx, bson.M{"_id": bson.M{"$gt": lastId}})
-		if err != nil {
-			log.Println("ошибка при поиске новых данных:", err)
-			continue
-		}
-		defer cur.Close(ctx)
-
-		for cur.Next(ctx) {
-			var passage models.Passage
-			if err := cur.Decode(&passage); err != nil {
-				log.Println("hh", err)
-				continue
-			}
-			var user models.User
-			if err := UserCollection.FindOne(ctx, bson.M{"fio_student": passage.FIO_student}).Decode(&user); err != nil {
-				log.Println("обнаружена ошибка пользователя", err)
-				continue
-			}
-			if !user.Logined {
-				log.Print("Пользователь не может получить данные в массив, так как не авторизирован")
-				continue
-			}
-
-			// err = telegram.SendDataToUser(&telegram.Bot{}, user.Tg_id.Id_telegram, passage)
-			// if err != nil {
-			// 	log.Println("Ошибка отправки данных пользователю")
-			// }
-			if err := cur.Err(); err != nil {
-				log.Println("yy", err)
-			}
-			cur.Close(ctx)
-			return &user, &passage, nil
-
-		}
-		
-		
-		time.Sleep(5 * time.Second)
+func SearchItemInDB() (*models.User, *models.Passage, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
+    options := options.FindOne().SetSort(bson.D{{"_id", -1}})
+    var passage models.Passage
+    err := PassageCollection.FindOne(ctx, bson.D{}, options).Decode(&passage)
+    if err != nil {
+        return nil, nil, err
+    }
+	if passage.Flag {
+		log.Println("Passage уже отправлен")
+		return nil, nil, err
 	}
+
+	var user models.User
+
+
+	if err := UserCollection.FindOne(ctx, bson.M{"fio_student":passage.FIO_student}).Decode(&user); err != nil {
+		log.Println("пользователь не найден, отрпавка отменена")
+	}
+	if !user.Logined {
+		log.Println("пользователь не авторизирован в системе, отправка отменена")
+		return nil, nil, err
+	}
+	passage.Flag = true
+	update := bson.D{{"$set", bson.D{{"flag", true}}}}
+    _, err = PassageCollection.UpdateOne(ctx, bson.M{"_id": passage.Passage_ID}, update)
+	
+	log.Println(&user, &passage)
+    return &user, &passage, nil
 }
+
+
 
 func AddSubscription(sb *models.Subscription) error {
 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
