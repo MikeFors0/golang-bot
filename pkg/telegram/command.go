@@ -3,14 +3,21 @@ package telegram
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	// "time"
 
-
-	"github.com/MikeFors0/golang-bot/pkg/models"
 	"github.com/MikeFors0/golang-bot/pkg/database"
+	"github.com/MikeFors0/golang-bot/pkg/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
+
+var PAYMENTS_TOKEN = "401643678:TEST:12f8fa5c-82aa-47e6-b808-2f1fd95ad954"
+
+var PRICE = tgbotapi.LabeledPrice{
+	Label:  "Подписка на 1 месяц",
+	Amount: 500 * 100,
+}
 
 // запускает бота
 func (b *Bot) Start() error {
@@ -37,7 +44,7 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 		return nil
 	}
 
-	_, err := database.AuthenticateUser(database.Client, message.Chat.ID, login, password)
+	_, err := database.AuthenticateUser( message.Chat.ID, login, password)
 	if err != nil {
 		if err.Error() == "invalid password" {
 			Reset_User_Command(message.Chat.ID, "reset_login")
@@ -92,5 +99,24 @@ func SendDataToUser(_bot *Bot, chatId int64, passage models.Passage) error {
 		return err
 	}
 
+	return nil
+}
+
+func (b *Bot) buy(message *tgbotapi.Message)error{
+	if strings.Split(PAYMENTS_TOKEN, ":")[1] == "TEST" {
+		msg := tgbotapi.NewMessage(message.Chat.ID, "Тестовый платеж!!!")
+		b.bot.Send(msg)
+	}
+	invoice := tgbotapi.NewInvoice( message.Chat.ID, "Подписка на бота", "Активация подписки на бота на 1 месяц", "test-payload", PAYMENTS_TOKEN, "one-month", "RUB", &[]tgbotapi.LabeledPrice{{Label: "RUB", Amount: 200}})
+	invoice.PhotoURL = "https://i.ytimg.com/vi/ntoyQN_0sMY/maxresdefault.jpg"
+	invoice.PhotoWidth = 416
+	invoice.PhotoHeight = 234
+	invoice.PhotoSize = 416
+	invoice.Prices = &[]tgbotapi.LabeledPrice{PRICE}
+	_, err := b.bot.Send(invoice)
+	if err != nil {
+		log.Println("invoice err", err)
+		return err
+	}
 	return nil
 }

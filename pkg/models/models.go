@@ -7,14 +7,14 @@ import (
 )
 
 type User struct {
-	ID              primitive.ObjectID `json:"_id" bson:"_id"`
-	Login           string             `json:"login" bson:"login"`
-	Password        string             `json:"password" bson:"password"`
-	FIO_student     string             `json:"fio_student" bson:"fio_student"`
-	User_ID         string             `json:"user_id" bson:"user_id"`
+	ID          primitive.ObjectID `json:"_id" bson:"_id"`
+	Login       string             `json:"login" bson:"login"`
+	Password    string             `json:"password" bson:"password"`
+	FIO_student string             `json:"fio_student" bson:"fio_student"`
+	User_ID     string             `json:"user_id" bson:"user_id"`
 	// Passage_student []Passage          `json:"passage_student" bson:"passage_student"`
-	Logined         bool               `json:"logined" bson:"logined"`
-	Tg_id           Id_telegram        `json:"tg_id" bson:"tg_id"`
+	Logined bool        `json:"logined" bson:"logined"`
+	Tg_id   Id_telegram `json:"tg_id" bson:"tg_id"`
 }
 
 type Subscription struct {
@@ -50,6 +50,7 @@ type Passage struct {
 	Passage_ID  primitive.ObjectID `bson:"_id"`
 	FIO_student string             `json:"fio_student" bson:"fio_student"`
 	Passage_At  time.Time          `json:"passage_at" bson:"passage_at"`
+	Flag        bool               `json:"flag" bson:"flag"`
 }
 
 type Id_telegram struct {
