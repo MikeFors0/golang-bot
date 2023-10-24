@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"time"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -29,12 +30,12 @@ func Init() *mongo.Client {
 var Client *mongo.Client = Init()
 
 func UserData(client *mongo.Client, collectionName string) *mongo.Collection {
-	var collection *mongo.Collection = client.Database("hjjhjhjhjh").Collection(collectionName)
+	var collection *mongo.Collection = client.Database("dlkgjdljgldjfglkd").Collection(collectionName)
 	return collection
 }
 
 func PassageData(client *mongo.Client, collectionName string) *mongo.Collection {
-	var collection *mongo.Collection = client.Database("hjjhjhjhjh").Collection(collectionName)
+	var collection *mongo.Collection = client.Database("dlkgjdljgldjfglkd").Collection(collectionName)
 	return collection
 }
 
@@ -42,7 +43,6 @@ func PassageData(client *mongo.Client, collectionName string) *mongo.Collection 
 // 	var collection *mongo.Collection = client.Database("okoko").Collection(collectionName)
 // 	return collection
 // }
-
 
 // func SubscriptionData(collectionName string) *mongo.Collection {
 // 	return Client.Database("test3").Collection(collectionName)

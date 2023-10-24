@@ -12,9 +12,34 @@ type User struct {
 	Password    string             `json:"password" bson:"password"`
 	FIO_student string             `json:"fio_student" bson:"fio_student"`
 	User_ID     string             `json:"user_id" bson:"user_id"`
-	// Passage_student []Passage          `json:"passage_student" bson:"passage_student"`
-	Logined bool        `json:"logined" bson:"logined"`
-	Tg_id   Id_telegram `json:"tg_id" bson:"tg_id"`
+	RoleUser    Role               `json:"roleuser" bson:"roleuser"`
+	GroupUser   []Group            `json:"groupuser" bson:"groupuser"`
+	Logined     bool               `json:"logined" bson:"logined"`
+	Tg_id       Id_telegram        `json:"tg_id" bson:"tg_id"`
+}
+
+type Role struct {
+	Student             bool `json:"student" bson:"student"`
+	Сurator             bool `json:"curator" bson:"curator"`
+	Methodist           bool `json:"methodist" bson:"methodist"`
+	SeniorMethodologist bool `josn:"seniormethodologist" bson:"seniormethodologist"`
+	Director            bool `json:"director" bson:"director"`
+}
+
+type Group struct {
+	Group string `json:"group" bson:"group"`
+}
+
+type Id_telegram struct {
+	Id_telegram int64 `json:"id_telegram" bson:"id_telegram"`
+}
+
+type Passage struct {
+	Passage_ID    primitive.ObjectID `bson:"_id"`
+	FIO_student   string             `json:"fio_student" bson:"fio_student"`
+	Group_student Group            `json:"group_student" bson:"group_student"`
+	Passage_At    time.Time          `json:"passage_at" bson:"passage_at"`
+	Flag          bool               `json:"flag" bson:"flag"`
 }
 
 type Subscription struct {
@@ -44,15 +69,4 @@ type Payment struct {
 	OrderID    primitive.ObjectID `bson:"order_id"`
 	Amount     float64            `bson:"amount"`
 	PaymentURL string             `bson:"payment_url"`
-}
-
-type Passage struct {
-	Passage_ID  primitive.ObjectID `bson:"_id"`
-	FIO_student string             `json:"fio_student" bson:"fio_student"`
-	Passage_At  time.Time          `json:"passage_at" bson:"passage_at"`
-	Flag        bool               `json:"flag" bson:"flag"`
-}
-
-type Id_telegram struct {
-	Id_telegram int64 `json:"id_telegram" bson:"id_telegram"`
 }
