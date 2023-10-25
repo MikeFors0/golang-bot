@@ -24,9 +24,10 @@ var PassageCollection *mongo.Collection = PassageData(Client, "passages")
 var validate = validator.New()
 
 func HashPassword(password string) string {
+	// преобразование "password" в хешированный вид
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
 	}
 	return string(bytes)
 }
@@ -34,24 +35,24 @@ func HashPassword(password string) string {
 // Создание пользователя в бд
 func AddUser(user *models.User) error {
 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-
+	// поиск в бд по "user.login" совпадений, в случайе нахождения, то count = 1 и больше (логин уже существует)
 	count, err := UserCollection.CountDocuments(ctx, bson.M{"login": user.Login})
 	defer cancel()
 	if err != nil {
-		log.Panic(err)
-		fmt.Println("Error login, checking login")
-
+		log.Println("Error login, checking login")
+		return err
 	}
 	if count > 0 {
 		defer cancel()
 		fmt.Println("user already exists")
 	} else {
+		// проверка на валидацию структуры пользователя
 		validatorErr := validate.Struct(user)
 		defer cancel()
 		if validatorErr != nil {
-			log.Panic(validatorErr.Error())
-			fmt.Println(validatorErr.Error())
+			log.Println(validatorErr.Error())
 		}
+		// запись новый данных в объект массива ("user")
 		password := HashPassword(user.Password)
 		user.Password = password
 		user.ID = primitive.NewObjectID()
@@ -92,7 +93,7 @@ func GetUsers() (*[]models.User, error) {
 		return nil, err
 	}
 	for _, user := range users {
-		log.Println(user.FIO_student, user.Login, user.Logined)
+		log.Println(user.FIO, user.Login, user.Logined)
 	}
 	return &users, nil
 }
@@ -109,24 +110,24 @@ func GetUser(tg_id int64) (*models.User, error) {
 	err := UserCollection.FindOne(ctx, bson.M{"tg_id.id_telegram": tg_id}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			fmt.Println("пользователь не найден", err)
+			log.Println("пользователь не найден")
 			return nil, err
 		}
-		fmt.Println("ошибка при поиске пользователя", err)
+		log.Println("ошибка при поиске пользователя")
 		return nil, err
 	}
-	log.Println(user.FIO_student, user.Login)
+	log.Println(user)
 	return user, nil
 }
 
 // Доступ к пользователя по fio
-func GetUserByFIO(fio_student string) (*models.User, error) {
+func GetUserByFIO(fio string) (*models.User, error) {
 	user := &models.User{}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	err := UserCollection.FindOne(ctx, bson.M{"fio_student": fio_student}).Decode(&user)
+	err := UserCollection.FindOne(ctx, bson.M{"fio": fio}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			fmt.Println("пользователь не найден")
@@ -144,7 +145,16 @@ func AddUserTelegram(tg_id int64) (*models.Id_telegram, error) {
 	ctx := context.Background()
 	var id_telegram models.Id_telegram
 	id_telegram.Id_telegram = tg_id
-	_, err := UserCollection.InsertOne(ctx, id_telegram)
+	count, err := UserCollection.CountDocuments(ctx, bson.M{"tg_id.id_telegram": id_telegram})
+	if err != nil {
+		log.Println("Ошибка ввода данных")
+		return nil, err
+	}
+	if count > 0 {
+		log.Println("пользователь с таким ID уже существует")
+	}
+
+	_, err = UserCollection.InsertOne(ctx, id_telegram)
 	if err != nil {
 		log.Println("error ", err)
 		return nil, err
@@ -206,24 +216,6 @@ func AddPassage(passage models.Passage) error {
 		return err
 	}
 	log.Println("Passage создан:", passage.FIO_student)
-
-	// var user, err = GetUserByFIO(passage.FIO_student)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return nil
-	// }
-
-	// filter := bson.M{"_id": user.ID}
-	// if !user.Logined {
-	// 	log.Println("пользователь не авторизирован")
-	// 	return nil
-	// }
-	// user.Passage_student = append(user.Passage_student, passage)
-	// if _, err := UserCollection.UpdateOne(ctx, filter, bson.M{"$set": user}); err != nil {
-	// 	log.Println("ошибка вставки в пользователя:", err)
-	// 	return err
-	// }
-	// log.Println("Passage отправлен:", passage.FIO_student)
 	return nil
 }
 
@@ -258,24 +250,21 @@ func GetAllPassages() ([]models.Passage, error) {
 }
 
 func SearchItemInDB() (*models.User, *models.Passage, error) {
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
-    options := options.FindOne().SetSort(bson.D{{"_id", -1}})
-    var passage models.Passage
-    err := PassageCollection.FindOne(ctx, bson.D{}, options).Decode(&passage)
-    if err != nil {
-		log.Println("Массив пустой")
-        return nil, nil, err
-    }
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	options := options.FindOne().SetSort(bson.D{{"_id", -1}})
+	var passage models.Passage
+	err := PassageCollection.FindOne(ctx, bson.D{}, options).Decode(&passage)
+	if err != nil {
+		return nil, nil, err
+	}
 	if passage.Flag {
 		log.Println("Passage уже отправлен")
 		return nil, nil, err
 	}
 
 	var user models.User
-
-
-	if err := UserCollection.FindOne(ctx, bson.M{"fio_student":passage.FIO_student}).Decode(&user); err != nil {
+	if err := UserCollection.FindOne(ctx, bson.M{"fio": passage.FIO_student}).Decode(&user); err != nil {
 		log.Println("пользователь не найден, отрпавка отменена")
 	}
 	if !user.Logined {
@@ -284,13 +273,11 @@ func SearchItemInDB() (*models.User, *models.Passage, error) {
 	}
 	passage.Flag = true
 	update := bson.D{{"$set", bson.D{{"flag", true}}}}
-    _, err = PassageCollection.UpdateOne(ctx, bson.M{"_id": passage.Passage_ID}, update)
-	
+	_, err = PassageCollection.UpdateOne(ctx, bson.M{"_id": passage.Passage_ID}, update)
+
 	log.Println(&user, &passage)
-    return &user, &passage, nil
+	return &user, &passage, nil
 }
-
-
 
 func AddSubscription(sb *models.Subscription) error {
 	var ctx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
@@ -408,7 +395,6 @@ func CheckSubscription(tg_id int64) (bool, error) {
 		log.Println("Подписка не найдена")
 		return false, err
 	}
-	log.Println(subscriptionUser)
 
 	if !subscriptionUser.IsActive || time.Now().After(subscriptionUser.EndDate) {
 		log.Println("Подписка истекла")
@@ -416,4 +402,37 @@ func CheckSubscription(tg_id int64) (bool, error) {
 	}
 	log.Println("подиска +")
 	return true, nil
+}
+
+func SearchForSenior(chatID int64, groupNumber models.Group) ([]models.Passage, error) {
+	user, err := GetUser(chatID)
+	if !user.Logined {
+		log.Println("пользователь не авторизирован")
+		return nil, err
+	}
+	if user.RoleUser.Сurator || user.RoleUser.Student {
+		log.Println("пользователь не является администрацией")
+		return nil, err
+	}
+
+	cur, err := PassageCollection.Find(context.Background(), bson.M{"group_student": groupNumber})
+	if err != nil {
+		return nil, fmt.Errorf("ошибка поиска: %v", err)
+	}
+	defer cur.Close(context.Background())
+	var passages []models.Passage
+	for cur.Next(context.Background()) {
+		var passage models.Passage
+		if err := cur.Decode(&passage); err != nil {
+			log.Println("ошибка декодирования:", err)
+			return nil, err
+		}
+		if passage.FIO_student == "" {
+			continue
+		}
+		passages = append(passages, passage)
+	}
+	cur.Close(context.Background())
+	return passages, nil
+
 }

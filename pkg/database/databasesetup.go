@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"time"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -42,7 +43,6 @@ func PassageData(client *mongo.Client, collectionName string) *mongo.Collection 
 // 	var collection *mongo.Collection = client.Database("okoko").Collection(collectionName)
 // 	return collection
 // }
-
 
 // func SubscriptionData(collectionName string) *mongo.Collection {
 // 	return Client.Database("test3").Collection(collectionName)
