@@ -1,14 +1,9 @@
 package telegram
 
 import (
-	// "fmt"
 	"log"
-	// "strings"
-
-	// "time"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
-	// "github.com/MikeFors0/golang-bot/pkg/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -52,13 +47,9 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 			Reset_User_Command(message.Chat.ID, "reset_login")
 			b.setMessage(message.Chat.ID, "Неправильный проль, повторите попытку ещё раз.")
 			return nil
+		} else {
+			b.setMessage(message.Chat.ID, err.Error())
 		}
-		// else {
-		// 	err := database.AddUser(&models.User{Login: login, Password: password, Tg_id: models.Id_telegram{Id_telegram: message.Chat.ID}})
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// }
 	}
 
 	b.setMessage(message.Chat.ID, "Данные сохранены, чтобы проверить напишите /auth")
@@ -76,14 +67,14 @@ func (b *Bot) Auth(message *tgbotapi.Message) error {
 
 	user, err := database.GetUser(message.Chat.ID)
 	if err != nil {
-		if err.Error() == "user not found" {
+		if err.Error() == "пользователь не найден" {
 			return b.setMessage(message.Chat.ID, "Нет такого пользователя, повторите попытку ещё раз, вызвав команду /start")
 		}
 		return b.setMessage(message.Chat.ID, err.Error())
 	}
 
 	//отправим сообщение в чат
-	_err := b.setMessage(message.Chat.ID, "Ваш логин: "+user.Login)
+	_err := b.setMessage(message.Chat.ID, "Ваш логин: " + user.Login)
 	if _err != nil {
 		return _err
 	}
@@ -93,19 +84,6 @@ func (b *Bot) Auth(message *tgbotapi.Message) error {
 
 
 
-
-// func SendDataToUser(_bot *Bot, chatId int64, passage models.Passage) error {
-// 	// создание нового сообщения
-// 	msg := tgbotapi.NewMessage(chatId, fmt.Sprintf("New data: %s", passage))
-
-// 	// отправка сообщения
-// 	_, err := _bot.bot.Send(msg)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
 
 
 

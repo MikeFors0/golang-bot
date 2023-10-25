@@ -1,14 +1,12 @@
 package main
 
 import (
-	"time"
+	"log"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
-	"github.com/MikeFors0/golang-bot/pkg/models"
 )
 
 func main() {
-	database.AddUser(&models.User{Login: "Owner", Password: "1234", FIO_student: "Mem"})
 	database.AddUserTelegram(3030)
 	database.AuthenticateUser(3030, "Owner", "1234")
 	log.Println(database.GetAllPassages())

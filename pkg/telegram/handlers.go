@@ -5,10 +5,52 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
+
+// обработчик обновлений
+func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
+
+	var wg sync.WaitGroup
+
+	for update := range updates {
+
+		log.Println("\n\nПолучено новое сообщение: " + "\nusername -> " + update.Message.Chat.UserName + "\ntext -> " + update.Message.Text + "\nchat_id -> " + fmt.Sprint(update.Message.Chat.ID) + "\nКонец\n")
+
+		if update.PreCheckoutQuery != nil {
+
+			b.HandlePreCheckoutQuery(&update)
+
+		} else if update.Message.SuccessfulPayment != nil {
+
+			b.HandleSuccessfulPayment(update.Message)
+
+		}
+
+		//если обновлений нет, продолжит ожидать
+		if update.Message == nil {
+			continue
+		}
+
+		//если это команда, перейдём в обработчик команд
+		if update.Message.IsCommand() {
+			wg.Add(1)
+			go b.handleCommand(update.Message.Chat.ID, update.Message, &wg)
+			time.Sleep(time.Second * 1)
+			continue
+		} else { //если текст, перейдём в обработчик сообщений
+			wg.Add(1)
+			go b.handleMessage(update.Message, &wg)
+			time.Sleep(time.Second * 1)
+			continue
+		}
+	}
+
+	wg.Wait()
+}
 
 // обработчик сообщений
 func (b *Bot) handleMessage(message *tgbotapi.Message, wg *sync.WaitGroup) error {
@@ -46,38 +88,37 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 	default:
 		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =((")
 	}
-
-	// return nil
+	
 }
 
+// действия при вызове /start
 func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
-	_, err := database.AddUserTelegram(message.Chat.ID)
+	user, err := database.AddUserTelegram(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
-	log.Println("Добавили пользователя в бд")
-
-	___err := b.setMessage(message.Chat.ID, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234")
-	if ___err != nil {
-		return ___err
+	if user != nil {
+		b.setMessage(message.Chat.ID, "Здравствуй, доррогой пользователь!\nС возвращением, я тебя помню 😎")
+	} else {
+		b.setMessage(message.Chat.ID, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234")
 	}
-
-	log.Println("Отправили сообщение")
 
 	err = Set_User_Command(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
-	log.Println("Обратились к Set_User_Command")
-
-	// log.Println("После handleStart у пользователя установлена команда: " + fmt.Sprint(ctx.Value(message.Chat.ID)))
+	reply := tgbotapi.NewMessage(message.Chat.ID, "Выберите действие:")
+	reply.ReplyMarkup = createMenu()
+	b.bot.Send(reply)
 
 	return nil
 }
 
+
+// вспомогательная функция обработки введённых пользоватлем данных
 func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	var (
 		login    string
@@ -112,39 +153,8 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 
 
 
-
-
-
-
-
-
-
-
-// func (b *Bot) handlePayment(message *tgbotapi.Message) error {
-// 	// Получение информации о платеже из обновления
-// 	payment := message.SuccessfulPayment
-
-// 	// Проверка статуса платежа
-// 	if payment != nil {
-// 		productName := payment.InvoicePayload
-// 		totalPrice := payment.TotalAmount
-// 	}
-
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-func (b *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) (tgbotapi.PreCheckoutConfig) {
+// обработчики покупки
+func (b *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) tgbotapi.PreCheckoutConfig {
 	pca := tgbotapi.PreCheckoutConfig{
 		OK:                 true,
 		PreCheckoutQueryID: update.PreCheckoutQuery.ID,
@@ -158,18 +168,16 @@ func (b *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) (tgbotapi.PreCheck
 	return pca
 }
 
-
 func (b *Bot) HandleSuccessfulPayment(message *tgbotapi.Message) *tgbotapi.SuccessfulPayment {
 	paymentInfo := message.SuccessfulPayment
 
 	paymentMessage := fmt.Sprintf(
 		"Платеж на сумму %d %s прошел успешно!!!",
-		paymentInfo.TotalAmount/100, 
+		paymentInfo.TotalAmount/100,
 		paymentInfo.Currency,
-
 	)
 	log.Println(paymentInfo)
 	b.setMessage(message.Chat.ID, paymentMessage)
 	return paymentInfo
 
-} 
+}
