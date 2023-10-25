@@ -1,14 +1,14 @@
 package telegram
 
 import (
-	"fmt"
+	// "fmt"
 	"log"
-	"strings"
+	// "strings"
 
 	// "time"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
-	"github.com/MikeFors0/golang-bot/pkg/models"
+	// "github.com/MikeFors0/golang-bot/pkg/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -46,7 +46,7 @@ func (b *Bot) Reg(message *tgbotapi.Message) error {
 		return nil
 	}
 
-	_, err := database.AuthenticateUser( message.Chat.ID, login, password)
+	_, err := database.AuthenticateUser(message.Chat.ID, login, password)
 	if err != nil {
 		if err.Error() == "invalid password" {
 			Reset_User_Command(message.Chat.ID, "reset_login")
@@ -91,34 +91,57 @@ func (b *Bot) Auth(message *tgbotapi.Message) error {
 	return nil
 }
 
-func SendDataToUser(_bot *Bot, chatId int64, passage models.Passage) error {
-	// создание нового сообщения
-	msg := tgbotapi.NewMessage(chatId, fmt.Sprintf("New data: %s", passage))
 
-	// отправка сообщения
-	_, err := _bot.bot.Send(msg)
-	if err != nil {
-		return err
-	}
 
-	return nil
-}
 
-func (b *Bot) buy(message *tgbotapi.Message)error{
-	if strings.Split(PAYMENTS_TOKEN, ":")[1] == "TEST" {
-		msg := tgbotapi.NewMessage(message.Chat.ID, "Тестовый платеж!!!")
-		b.bot.Send(msg)
-	}
-	invoice := tgbotapi.NewInvoice( message.Chat.ID, "Подписка на бота", "Активация подписки на бота на 1 месяц", "test-payload", PAYMENTS_TOKEN, "one-month", "RUB", &[]tgbotapi.LabeledPrice{{Label: "RUB", Amount: 200}})
+// func SendDataToUser(_bot *Bot, chatId int64, passage models.Passage) error {
+// 	// создание нового сообщения
+// 	msg := tgbotapi.NewMessage(chatId, fmt.Sprintf("New data: %s", passage))
+
+// 	// отправка сообщения
+// 	_, err := _bot.bot.Send(msg)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+func (b *Bot) buy(message *tgbotapi.Message) error {
+
+	invoice := tgbotapi.NewInvoice(
+		message.Chat.ID,
+		"Подписка на бота",
+		"Активация подписки на бота на 1 месяц",
+		"test",
+		PAYMENTS_TOKEN,
+		"one-month-subscription",
+		"RUB",
+		&[]tgbotapi.LabeledPrice{PRICE},
+	) 
+
 	invoice.PhotoURL = "https://i.ytimg.com/vi/ntoyQN_0sMY/maxresdefault.jpg"
 	invoice.PhotoWidth = 416
 	invoice.PhotoHeight = 234
 	invoice.PhotoSize = 416
-	invoice.Prices = &[]tgbotapi.LabeledPrice{PRICE}
-	_, err := b.bot.Send(invoice)
-	if err != nil {
-		log.Println("invoice err", err)
-		return err
+
+
+	_, _err := b.bot.Send(invoice)
+	if _err != nil {
+		log.Println("invoice err", _err)
+		return  _err
 	}
+	
 	return nil
 }

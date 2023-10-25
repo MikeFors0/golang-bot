@@ -264,6 +264,7 @@ func SearchItemInDB() (*models.User, *models.Passage, error) {
     var passage models.Passage
     err := PassageCollection.FindOne(ctx, bson.D{}, options).Decode(&passage)
     if err != nil {
+		log.Println("Массив пустой")
         return nil, nil, err
     }
 	if passage.Flag {

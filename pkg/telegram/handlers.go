@@ -1,14 +1,10 @@
 package telegram
 
 import (
-	// "context"
-	// "fmt"
 	"fmt"
 	"log"
 	"strings"
 	"sync"
-
-	// "time"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -56,7 +52,7 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 
 func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
-	_, err := database.AddUserTelegram( message.Chat.ID)
+	_, err := database.AddUserTelegram(message.Chat.ID)
 	if err != nil {
 		return err
 	}
@@ -114,34 +110,66 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	return login, password
 }
 
-func (bot *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) {
-	pca := tgbotapi.PreCheckoutConfig{
-		PreCheckoutQueryID: update.PreCheckoutQuery.ID,
-		OK:                 true,
-	}
 
-	_, err := bot.bot.AnswerPreCheckoutQuery(pca)
-	if err != nil {
-		log.Println("handlePreCheckount",err)
+
+
+
+
+
+
+
+
+
+// func (b *Bot) handlePayment(message *tgbotapi.Message) error {
+// 	// Получение информации о платеже из обновления
+// 	payment := message.SuccessfulPayment
+
+// 	// Проверка статуса платежа
+// 	if payment != nil {
+// 		productName := payment.InvoicePayload
+// 		totalPrice := payment.TotalAmount
+// 	}
+
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+func (b *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) (tgbotapi.PreCheckoutConfig) {
+	pca := tgbotapi.PreCheckoutConfig{
+		OK:                 true,
+		PreCheckoutQueryID: update.PreCheckoutQuery.ID,
 	}
+	_, err := b.bot.AnswerPreCheckoutQuery(pca)
+
+	if err != nil {
+		log.Println("handlePreCheckount", err)
+	}
+	log.Println(pca)
+	return pca
 }
 
-func (bot *Bot) HandleSuccessfulPayment(update tgbotapi.Update) {
-	message := update.Message
 
+func (b *Bot) HandleSuccessfulPayment(message *tgbotapi.Message) *tgbotapi.SuccessfulPayment {
 	paymentInfo := message.SuccessfulPayment
 
-	paymentMessage := fmt.Sprintf("Платеж на сумму %d %s прошел успешно!!!",
-		paymentInfo.TotalAmount/100, paymentInfo.Currency)
+	paymentMessage := fmt.Sprintf(
+		"Платеж на сумму %d %s прошел успешно!!!",
+		paymentInfo.TotalAmount/100, 
+		paymentInfo.Currency,
 
-	msg := tgbotapi.NewMessage(message.Chat.ID, paymentMessage)
-	_, err := bot.bot.Send(msg)
-	if err != nil {
-		log.Println(err)
-	}
-}
+	)
+	log.Println(paymentInfo)
+	b.setMessage(message.Chat.ID, paymentMessage)
+	return paymentInfo
 
-// func (b *Bot) handleRequest(message *tgbotapi.Message) {
-// 	log.Println("Обработка запроса: " + message.Chat.UserName + " " + message.Text)
-// 	time.Sleep(time.Second * 2)
-// }
+} 

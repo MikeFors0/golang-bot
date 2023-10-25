@@ -3,10 +3,12 @@ package telegram
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
 	// "github.com/MikeFors0/golang-bot/pkg/database"
+	"github.com/MikeFors0/golang-bot/pkg/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -27,16 +29,21 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 
 		log.Println("\n\nПолучено новое сообщение: " + "\nusername -> " + update.Message.Chat.UserName + "\ntext -> " + update.Message.Text + "\nchat_id -> " + fmt.Sprint(update.Message.Chat.ID) + "\nКонец\n")
 
-		//если обновлений нет, продолжит ожидать
-		if update.Message == nil {
-			continue
-		}
+		
 
 		if update.PreCheckoutQuery != nil {
+			log.Println("err1")
 			b.HandlePreCheckoutQuery(&update)
-		} else if update.Message != nil && update.Message.SuccessfulPayment != nil {
-			b.HandleSuccessfulPayment(update)
-		}
+			return
+		  } else if update.Message != nil && update.Message.SuccessfulPayment != nil {
+			log.Println("err2")
+			b.HandleSuccessfulPayment(update.Message)
+			log.Println(update.Message)
+			log.Println(&update)
+			return
+		  }
+		log.Println(update.Message)
+		log.Println(&update)
 
 		//если это команда, перейдём в обработчик команд
 		if update.Message.IsCommand() {
@@ -51,7 +58,13 @@ func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
 			continue
 		}
 
+		//если обновлений нет, продолжит ожидать
+		if update.Message == nil {
+			continue
+		}
+
 	}
+	log.Println(updates)
 
 	wg.Wait()
 }
@@ -78,14 +91,21 @@ func (b *Bot) setMessage(userId int64, text string) error {
 }
 
 func (b *Bot) GetPassage() {
-	u := time.Second * 5
 
-	for u != time.Second * 1 {
-		time.Sleep(u)
-		// user, new_passage, err := database.CheckNewData()
-		// if err != nil {
-			// log.Println(err)
-		// }
-		// b.setMessage(user.Tg_id.Id_telegram, fmt.Sprint(new_passage))
+	for {
+		user, passage, err := database.SearchItemInDB()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		if user != nil {
+			text_passage := strings.Split(fmt.Sprint(passage), " ")
+			b.setMessage(user.Tg_id.Id_telegram, "Ученик с фамилией: " + text_passage[1] + "\nПрошёл через турникет в колледже \nДата: " + text_passage[2] + "\nВремя: " + text_passage[3])
+		}
+
+		log.Println(user, passage)
+
+		time.Sleep(5 * time.Second)
 	}
 }
