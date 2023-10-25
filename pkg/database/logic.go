@@ -93,7 +93,7 @@ func GetUsers() (*[]models.User, error) {
 		return nil, err
 	}
 	for _, user := range users {
-		log.Println(user.FIO_student, user.Login, user.Logined)
+		log.Println(user.FIO, user.Login, user.Logined)
 	}
 	return &users, nil
 }
@@ -121,13 +121,13 @@ func GetUser(tg_id int64) (*models.User, error) {
 }
 
 // Доступ к пользователя по fio
-func GetUserByFIO(fio_student string) (*models.User, error) {
+func GetUserByFIO(fio string) (*models.User, error) {
 	user := &models.User{}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	err := UserCollection.FindOne(ctx, bson.M{"fio_student": fio_student}).Decode(&user)
+	err := UserCollection.FindOne(ctx, bson.M{"fio": fio}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			fmt.Println("пользователь не найден")
@@ -145,7 +145,16 @@ func AddUserTelegram(tg_id int64) (*models.Id_telegram, error) {
 	ctx := context.Background()
 	var id_telegram models.Id_telegram
 	id_telegram.Id_telegram = tg_id
-	_, err := UserCollection.InsertOne(ctx, id_telegram)
+	count, err := UserCollection.CountDocuments(ctx, bson.M{"tg_id.id_telegram": id_telegram})
+	if err != nil {
+		log.Println("Ошибка ввода данных")
+		return nil, err
+	}
+	if count > 0 {
+		log.Println("пользователь с таким ID уже существует")
+	}
+
+	_, err = UserCollection.InsertOne(ctx, id_telegram)
 	if err != nil {
 		log.Println("error ", err)
 		return nil, err
@@ -255,8 +264,7 @@ func SearchItemInDB() (*models.User, *models.Passage, error) {
 	}
 
 	var user models.User
-
-	if err := UserCollection.FindOne(ctx, bson.M{"fio_student": passage.FIO_student}).Decode(&user); err != nil {
+	if err := UserCollection.FindOne(ctx, bson.M{"fio": passage.FIO_student}).Decode(&user); err != nil {
 		log.Println("пользователь не найден, отрпавка отменена")
 	}
 	if !user.Logined {
@@ -396,18 +404,18 @@ func CheckSubscription(tg_id int64) (bool, error) {
 	return true, nil
 }
 
-func SearchForKurator(chatID int64, groupNumber models.Group) ([]models.Passage, error) {
+func SearchForSenior(chatID int64, groupNumber models.Group) ([]models.Passage, error) {
 	user, err := GetUser(chatID)
 	if !user.Logined {
 		log.Println("пользователь не авторизирован")
 		return nil, err
 	}
-	if !user.RoleUser.Сurator {
-		log.Println("пользователь не является куратором")
+	if user.RoleUser.Сurator || user.RoleUser.Student {
+		log.Println("пользователь не является администрацией")
 		return nil, err
 	}
 
-	cur, err := PassageCollection.Find(context.Background(), bson.M{"group_student.group": groupNumber.Group})
+	cur, err := PassageCollection.Find(context.Background(), bson.M{"group_student": groupNumber})
 	if err != nil {
 		return nil, fmt.Errorf("ошибка поиска: %v", err)
 	}
