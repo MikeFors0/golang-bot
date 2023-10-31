@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
+	"github.com/MikeFors0/golang-bot/pkg/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -88,35 +89,32 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 	default:
 		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =((")
 	}
-	
+
 }
 
 // действия при вызове /start
 func (b *Bot) handleStart(message *tgbotapi.Message) error {
-
-	user, err := database.AddUserTelegram(message.Chat.ID)
+	user := models.User{}
+	_, err := database.AddUserTelegram(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
-	if user != nil {
-		b.setMessage(message.Chat.ID, "Здравствуй, доррогой пользователь!\nС возвращением, я тебя помню 😎")
-	} else {
-		b.setMessage(message.Chat.ID, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234")
-	}
+	b.setMessage(message.Chat.ID, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nAdmin 4444\n\nAdmin\n4444")
 
 	err = Set_User_Command(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
-	reply := tgbotapi.NewMessage(message.Chat.ID, "Выберите действие:")
-	reply.ReplyMarkup = createMenu()
-	b.bot.Send(reply)
+	if user.Logined {
+		reply := tgbotapi.NewMessage(message.Chat.ID, "Выберите действие:")
+		reply.ReplyMarkup = createMenu()
+		b.bot.Send(reply)
+	}
 
 	return nil
 }
-
 
 // вспомогательная функция обработки введённых пользоватлем данных
 func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
@@ -150,8 +148,6 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 
 	return login, password
 }
-
-
 
 // обработчики покупки
 func (b *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) tgbotapi.PreCheckoutConfig {

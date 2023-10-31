@@ -59,10 +59,10 @@ func AddUser(user *models.User) error {
 		user.User_ID = user.ID.Hex()
 		_, insertErr := UserCollection.InsertOne(ctx, user)
 		if insertErr != nil {
-			fmt.Sprintf("User item was not created: %v", insertErr)
+			log.Println("User item was not created: %v", insertErr)
 		}
 		defer cancel()
-		fmt.Println("User created", user.Login)
+		log.Println("User created", user.Login)
 		return nil
 	}
 	return nil
@@ -266,6 +266,7 @@ func SearchItemInDB() (*models.User, *models.Passage, error) {
 	var user models.User
 	if err := UserCollection.FindOne(ctx, bson.M{"fio": passage.FIO_student}).Decode(&user); err != nil {
 		log.Println("пользователь не найден, отрпавка отменена")
+		return nil, nil, err
 	}
 	if !user.Logined {
 		log.Println("пользователь не авторизирован в системе, отправка отменена")

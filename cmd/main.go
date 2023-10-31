@@ -3,7 +3,10 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
+	"github.com/MikeFors0/golang-bot/pkg/database"
+	"github.com/MikeFors0/golang-bot/pkg/models"
 	"github.com/MikeFors0/golang-bot/pkg/telegram"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
@@ -20,33 +23,35 @@ func main() {
 	log.Println("This is a log message")
 
 	telegram.User_comand = make(map[int64]string)
-	// database.AddPassage(models.Passage{FIO_student: "Smolkin"})
+	database.AddPassage(models.Passage{FIO_student: "Генадий Викторич Пета"})
+	database.AddPassage(models.Passage{FIO_student: "Петр Бульнович Буль"})
 
-	// user := models.User{
-	// 	Login:       "Ira",
-	// 	FIO_student: "Smolkin",
-	// 	Password:    "1111",
-	// }
+	user := models.User{
+		Login:    "Ira",
+		FIO:      "Генадий Викторич Пета",
+		Password: "1111",
+	}
 
 	// user2 := models.User{
-	// 	Login:       "Gandon",
-	// 	FIO_student: "GGG",
-	// 	Password:    "2222",
+	// 	Login:    "Gandon",
+	// 	FIO:      "Генадий Викторич Пета",
+	// 	Password: "2222",
 	// }
 
 	// user3 := models.User{
-	// 	Login:       "Mike",
-	// 	FIO_student: "MMM",
-	// 	Password:    "3333",
+	// 	Login:    "Mike",
+	// 	FIO:      "Петр Бульнович Буль",
+	// 	Password: "3333",
 	// }
 
 	// user4 := models.User{
-	// 	Login:       "Admin",
-	// 	FIO_student: "Admin",
-	// 	Password:    "4444",
+	// 	Login:    "Admin",
+	// 	FIO:      "Петр Бульнович Буль",
+	// 	Password: "4444",
 	// }
 
-	// database.AddUser(&user)
+	database.AddUser(&user)
+
 	// database.AddUser(&user2)
 	// database.AddUser(&user3)
 	// database.AddUser(&user4)
@@ -62,15 +67,16 @@ func main() {
 		log.Println(err)
 	}
 
-	// telegramBot.GetPassage()
+	telegramBot.GetPassage()
 
-	// database.AddPassage(models.Passage{FIO_student: "Smolkin"})
-
-	// time.Sleep(time.Second * 7)
-
-	// database.AddPassage(models.Passage{FIO_student: "Smolkin"})
+	time.Sleep(time.Second * 7)
+	database.AddPassage(models.Passage{FIO_student: "Генадий Викторич Пета"})
 
 	// time.Sleep(time.Second * 7)
 
-	// database.AddPassage(models.Passage{FIO_student: "Smolkin"})
+	// database.AddPassage(models.Passage{FIO_student: "Генадий"})
+
+	// time.Sleep(time.Second * 7)
+
+	// database.AddPassage(models.Passage{FIO_student: "Петр"})
 }

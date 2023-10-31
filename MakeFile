@@ -1,0 +1,46 @@
+.PHONY: help
+.SILENT:
+all: help install start-server go-build go-run
+
+install: go-install
+
+start-server:
+	@echo "  >  Start server..."
+	sudo systemctl start mongod
+
+status-server:
+	@echo "  >  Status server..."
+	sudo systemctl status mongod
+
+stop-server:
+	@echo "  >  Stop server..."
+	sudo systemctl stop mongod
+
+go-build:
+	@echo "  >  Building binary..."
+	go build -o ./bin/golang-bot ./cmd/main.go
+go-run: go-build
+	./bin/golang-bot
+
+
+go-install:
+	go mod tidy
+	go mod vendor
+
+
+help: 
+	@echo "Choose a command run in Golang-bot:"
+	@echo ""
+	@echo "Targets:"
+	@echo "  go-build     		Build the Go project"
+	@echo "  go-run       		Run the Go project"
+	@echo "  start-server       	Start server mongodb for project"
+	@echo "  stop-server       	Stop server mongodb for project"
+	@echo "  status-server		Status server mongodb for project"
+	@echo "  help         		Show this help message"
+	@echo ""
+	@echo ""
+	@echo "All dependencies will install themselves, but you must have mongodb installed!"
+	@echo "You must also have golang installed!"
+	@echo ""
+	@echo "©Creator - https://github.com/MikeFors0/"

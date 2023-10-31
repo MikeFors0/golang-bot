@@ -70,4 +70,5 @@ func (b *Bot) GetPassage() {
 
 		time.Sleep(5 * time.Second)
 	}
+	
 }
