@@ -1,18 +1,56 @@
 package telegram
 
 import (
-	// "context"
-	// "fmt"
 	"fmt"
 	"log"
 	"strings"
 	"sync"
-
-	// "time"
+	"time"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
+
+// обработчик обновлений
+func (b *Bot) handleUpdates(updates tgbotapi.UpdatesChannel) {
+
+	var wg sync.WaitGroup
+
+	for update := range updates {
+
+		log.Println("\n\nПолучено новое сообщение: " + "\nusername -> " + update.Message.Chat.UserName + "\ntext -> " + update.Message.Text + "\nchat_id -> " + fmt.Sprint(update.Message.Chat.ID) + "\nКонец\n")
+
+		if update.PreCheckoutQuery != nil {
+
+			b.HandlePreCheckoutQuery(&update)
+
+		} else if update.Message.SuccessfulPayment != nil {
+
+			b.HandleSuccessfulPayment(update.Message)
+
+		}
+
+		//если обновлений нет, продолжит ожидать
+		if update.Message == nil {
+			continue
+		}
+
+		//если это команда, перейдём в обработчик команд
+		if update.Message.IsCommand() {
+			wg.Add(1)
+			go b.handleCommand(update.Message.Chat.ID, update.Message, &wg)
+			time.Sleep(time.Second * 1)
+			continue
+		} else { //если текст, перейдём в обработчик сообщений
+			wg.Add(1)
+			go b.handleMessage(update.Message, &wg)
+			time.Sleep(time.Second * 1)
+			continue
+		}
+	}
+
+	wg.Wait()
+}
 
 // обработчик сообщений
 func (b *Bot) handleMessage(message *tgbotapi.Message, wg *sync.WaitGroup) error {
@@ -31,7 +69,7 @@ func (b *Bot) handleMessage(message *tgbotapi.Message, wg *sync.WaitGroup) error
 		return b.Reg(message)
 
 	default:
-		return b.setMessage(message, "К сожалению, я не знаю такой команды =(")
+		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =(")
 	}
 }
 
@@ -48,40 +86,39 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 	case "buy":
 		return b.buy(message)
 	default:
-		return b.setMessage(message, "К сожалению, я не знаю такой команды =((")
+		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =((")
 	}
-
-	// return nil
+	
 }
 
+// действия при вызове /start
 func (b *Bot) handleStart(message *tgbotapi.Message) error {
 
-	_, err := database.AddUserTelegram( message.Chat.ID)
+	user, err := database.AddUserTelegram(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
-	log.Println("Добавили пользователя в бд")
-
-	___err := b.setMessage(message, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234")
-	if ___err != nil {
-		return ___err
+	if user != nil {
+		b.setMessage(message.Chat.ID, "Здравствуй, доррогой пользователь!\nС возвращением, я тебя помню 😎")
+	} else {
+		b.setMessage(message.Chat.ID, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nuser@gmail.com 1234\n\nuser@gmail.com\n1234")
 	}
-
-	log.Println("Отправили сообщение")
 
 	err = Set_User_Command(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
-	log.Println("Обратились к Set_User_Command")
-
-	// log.Println("После handleStart у пользователя установлена команда: " + fmt.Sprint(ctx.Value(message.Chat.ID)))
+	reply := tgbotapi.NewMessage(message.Chat.ID, "Выберите действие:")
+	reply.ReplyMarkup = createMenu()
+	b.bot.Send(reply)
 
 	return nil
 }
 
+
+// вспомогательная функция обработки введённых пользоватлем данных
 func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	var (
 		login    string
@@ -97,7 +134,7 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 		if len(_text) != 2 {
 			Reset_User_Command(message.Chat.ID, "reset_login")
 			log.Printf("new command: reset_login")
-			b.setMessage(message, "Данные указаны неверно, повторите попытку ещё раз.")
+			b.setMessage(message.Chat.ID, "Данные указаны неверно, повторите попытку ещё раз.")
 			return "", ""
 		}
 
@@ -107,41 +144,40 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 	} else {
 		Reset_User_Command(message.Chat.ID, "reset_login")
 		log.Printf("new command: reset_login")
-		b.setMessage(message, "Данные указаны неверно, повторите попытку ещё раз.")
+		b.setMessage(message.Chat.ID, "Данные указаны неверно, повторите попытку ещё раз.")
 		return "", ""
 	}
 
 	return login, password
 }
 
-func (bot *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) {
-	pca := tgbotapi.PreCheckoutConfig{
-		PreCheckoutQueryID: update.PreCheckoutQuery.ID,
-		OK:                 true,
-	}
 
-	_, err := bot.bot.AnswerPreCheckoutQuery(pca)
-	if err != nil {
-		log.Println("handlePreCheckount",err)
+
+// обработчики покупки
+func (b *Bot) HandlePreCheckoutQuery(update *tgbotapi.Update) tgbotapi.PreCheckoutConfig {
+	pca := tgbotapi.PreCheckoutConfig{
+		OK:                 true,
+		PreCheckoutQueryID: update.PreCheckoutQuery.ID,
 	}
+	_, err := b.bot.AnswerPreCheckoutQuery(pca)
+
+	if err != nil {
+		log.Println("handlePreCheckount", err)
+	}
+	log.Println(pca)
+	return pca
 }
 
-func (bot *Bot) HandleSuccessfulPayment(update tgbotapi.Update) {
-	message := update.Message
-
+func (b *Bot) HandleSuccessfulPayment(message *tgbotapi.Message) *tgbotapi.SuccessfulPayment {
 	paymentInfo := message.SuccessfulPayment
 
-	paymentMessage := fmt.Sprintf("Платеж на сумму %d %s прошел успешно!!!",
-		paymentInfo.TotalAmount/100, paymentInfo.Currency)
+	paymentMessage := fmt.Sprintf(
+		"Платеж на сумму %d %s прошел успешно!!!",
+		paymentInfo.TotalAmount/100,
+		paymentInfo.Currency,
+	)
+	log.Println(paymentInfo)
+	b.setMessage(message.Chat.ID, paymentMessage)
+	return paymentInfo
 
-	msg := tgbotapi.NewMessage(message.Chat.ID, paymentMessage)
-	_, err := bot.bot.Send(msg)
-	if err != nil {
-		log.Println(err)
-	}
 }
-
-// func (b *Bot) handleRequest(message *tgbotapi.Message) {
-// 	log.Println("Обработка запроса: " + message.Chat.UserName + " " + message.Text)
-// 	time.Sleep(time.Second * 2)
-// }
