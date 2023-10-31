@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/MikeFors0/golang-bot/pkg/database"
-	"github.com/MikeFors0/golang-bot/pkg/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
@@ -62,16 +61,25 @@ func (b *Bot) handleMessage(message *tgbotapi.Message, wg *sync.WaitGroup) error
 		return err
 	}
 
-	switch user {
-	case "start":
-		return b.Reg(message)
+	switch message.Text {
+		case "Мои данные":
+			return b.Auth(message)
+		case "Купить подписку":
+			return b.buy(message)
+		
+		default:
+			switch user {
+				case "start":
+					return b.Reg(message)
 
-	case "reset_login":
-		return b.Reg(message)
+				case "reset_login":
+					return b.Reg(message)
 
-	default:
-		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =(")
+				default:
+					return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =(")
+				}
 	}
+
 }
 
 // обработчик команд
@@ -82,10 +90,6 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 	case "start":
 		return b.handleStart(message)
 
-	case "auth":
-		return b.Auth(message)
-	case "buy":
-		return b.buy(message)
 	default:
 		return b.setMessage(message.Chat.ID, "К сожалению, я не знаю такой команды =((")
 	}
@@ -94,24 +98,27 @@ func (b *Bot) handleCommand(chat_id int64, message *tgbotapi.Message, wg *sync.W
 
 // действия при вызове /start
 func (b *Bot) handleStart(message *tgbotapi.Message) error {
-	user := models.User{}
+
 	_, err := database.AddUserTelegram(message.Chat.ID)
 	if err != nil {
+
+		if err.Error() == "пользователь с таким ID уже существует" {
+			b.setMessage(message.Chat.ID, "С возвращением, дорогой пользователь!\nЯ вас помню 🤗")
+			return nil
+		}
+
 		return err
 	}
 
-	b.setMessage(message.Chat.ID, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nAdmin 4444\n\nAdmin\n4444")
 
 	err = Set_User_Command(message.Chat.ID)
 	if err != nil {
 		return err
 	}
 
-	if user.Logined {
-		reply := tgbotapi.NewMessage(message.Chat.ID, "Выберите действие:")
-		reply.ReplyMarkup = createMenu()
-		b.bot.Send(reply)
-	}
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Здравствуй, дорогой пользователь!\nДобро пожаловать в систему помощника по просмотру посещаемости учеников Самарского Государственного Колледжа.\nЯ буду отправлять Вам уведомления, когда Ваш ребёнок придёт в колледж.\nНапишите мне свои логин и пароль как на нашем сайте в любом из форматов ниже:\n\nAdmin 4444\n\nAdmin\n4444")
+	msg.ReplyMarkup = createMenu()
+	b.bot.Send(msg)
 
 	return nil
 }
@@ -131,7 +138,6 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 		_text := strings.Split(message.Text, " ")
 		if len(_text) != 2 {
 			Reset_User_Command(message.Chat.ID, "reset_login")
-			log.Printf("new command: reset_login")
 			b.setMessage(message.Chat.ID, "Данные указаны неверно, повторите попытку ещё раз.")
 			return "", ""
 		}
@@ -141,7 +147,6 @@ func (b *Bot) handleLogin(message *tgbotapi.Message) (string, string) {
 
 	} else {
 		Reset_User_Command(message.Chat.ID, "reset_login")
-		log.Printf("new command: reset_login")
 		b.setMessage(message.Chat.ID, "Данные указаны неверно, повторите попытку ещё раз.")
 		return "", ""
 	}

@@ -44,8 +44,8 @@ func (b *Bot) setMessage(userId int64, text string) error {
 func createMenu() tgbotapi.ReplyKeyboardMarkup {
 	menu := tgbotapi.NewReplyKeyboard(
 	 tgbotapi.NewKeyboardButtonRow(
-	  tgbotapi.NewKeyboardButton("/auth"),
-	  tgbotapi.NewKeyboardButton("/buy"),
+	  tgbotapi.NewKeyboardButton("Мои данные"),
+	  tgbotapi.NewKeyboardButton("Купить подписку"),
 	 ),
 	)
 	return menu
@@ -63,12 +63,12 @@ func (b *Bot) GetPassage() {
 
 		if user != nil {
 			text_passage := strings.Split(fmt.Sprint(passage), " ")
-			b.setMessage(user.Tg_id.Id_telegram, "Ученик с фамилией: "+text_passage[1]+"\nПрошёл через турникет в колледже \nДата: "+text_passage[2]+"\nВремя: "+text_passage[3])
+			_time := strings.Split(text_passage[6], ".")
+			b.setMessage(user.Tg_id.Id_telegram, "Ученик: "+text_passage[1] + " " + text_passage[2] + " " + text_passage[3] +"\nПрошёл через турникет в колледже \nДата: "+text_passage[5]+"\nВремя: "+ _time[0])
 		}
 
 		log.Println(user, passage)
 
 		time.Sleep(5 * time.Second)
 	}
-	
 }

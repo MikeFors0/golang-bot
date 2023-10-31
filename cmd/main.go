@@ -23,14 +23,14 @@ func main() {
 	log.Println("This is a log message")
 
 	telegram.User_comand = make(map[int64]string)
-	database.AddPassage(models.Passage{FIO_student: "Генадий Викторич Пета"})
-	database.AddPassage(models.Passage{FIO_student: "Петр Бульнович Буль"})
+	// database.AddPassage(models.Passage{FIO_student: "Генадий Викторич Пета"})
+	// database.AddPassage(models.Passage{FIO_student: "Петр Бульнович Буль"})
 
-	user := models.User{
-		Login:    "Ira",
-		FIO:      "Генадий Викторич Пета",
-		Password: "1111",
-	}
+	// user := models.User{
+	// 	Login:    "Ira",
+	// 	FIO:      "Генадий Викторич Пета",
+	// 	Password: "1111",
+	// }
 
 	// user2 := models.User{
 	// 	Login:    "Gandon",
@@ -50,7 +50,7 @@ func main() {
 	// 	Password: "4444",
 	// }
 
-	database.AddUser(&user)
+	// database.AddUser(&user)
 
 	// database.AddUser(&user2)
 	// database.AddUser(&user3)
