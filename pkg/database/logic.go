@@ -152,6 +152,7 @@ func AddUserTelegram(tg_id int64) (*models.Id_telegram, error) {
 	}
 	if count > 0 {
 		log.Println("пользователь с таким ID уже существует")
+		return nil, err
 	}
 
 	_, err = UserCollection.InsertOne(ctx, id_telegram)
